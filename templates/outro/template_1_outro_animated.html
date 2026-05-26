@@ -1,0 +1,73 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1920px;height:1080px;overflow:hidden;font-family:'Poppins',sans-serif;background:#000;}
+.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+.bf{position:absolute;inset:0;background:#000;opacity:0;z-index:1;}
+.strip{position:absolute;left:-1920px;top:50%;transform:translateY(-50%);width:1920px;height:580px;background:rgba(0,0,0,0.6);z-index:2;}
+</style></head><body>
+<img src="{{bg_photo}}" class="bg" id="bgImg">
+<div class="bf" id="blackFade"></div>
+<div class="strip" id="strip"></div>
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:5;">
+  <div id="e0" style="opacity:0;font-size:48px;font-weight:700;letter-spacing:3px;color:#fff;">{{heading}}</div>
+  <div id="gl" style="width:0;height:3px;background:#c8a45e;margin:28px 0;"></div>
+  <div id="e1" style="opacity:0;font-size:30px;font-weight:400;color:rgba(255,255,255,0.9);letter-spacing:2px;">{{agent_name}}</div>
+  <div id="e2" style="opacity:0;margin-top:14px;font-size:26px;color:rgba(255,255,255,0.7);">{{location}}</div>
+  <div id="e3" style="opacity:0;margin-top:14px;font-size:26px;color:rgba(255,255,255,0.7);">PHONE: {{phone}}</div>
+  <div id="e4" style="opacity:0;margin-top:14px;font-size:26px;color:rgba(255,255,255,0.7);">{{email}}</div>
+</div>
+<script>
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+var config = [{id:"strip",delay:0,dur:800,type:"slideInLeft"},{id:"e0",delay:800,dur:700,type:"slideUp"},{id:"gl",delay:1200,dur:500,type:"expandWidth",target:100},{id:"e1",delay:1500,dur:600,type:"slideUp"},{id:"e2",delay:1800,dur:600,type:"slideUp"},{id:"e3",delay:2100,dur:600,type:"slideUp"},{id:"e4",delay:2400,dur:600,type:"slideUp"},{id:"blackFade",delay:4000,dur:1500,type:"fadeIn"},{id:"bgImg",delay:4000,dur:1500,type:"fadeOut"}];
+
+window.setAnimationTime = function(timeMs) {
+  config.forEach(function(item) {
+    var el = document.getElementById(item.id);
+    if (!el) return;
+    var progress = 0;
+    if (timeMs < item.delay) progress = 0;
+    else if (timeMs >= item.delay + item.dur) progress = 1;
+    else progress = (timeMs - item.delay) / item.dur;
+    var ep = easeOutCubic(progress);
+    
+    if (item.type === 'fade') {
+      el.style.opacity = ep;
+    } else if (item.type === 'slideUp') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateY(' + lerp(30, 0, ep) + 'px)';
+    } else if (item.type === 'slideLeft') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateX(' + lerp(-40, 0, ep) + 'px)';
+    } else if (item.type === 'scalePop') {
+      el.style.opacity = ep;
+      var s = lerp(0.75, 1, Math.min(1, ep * 1.15));
+      el.style.transform = 'scale(' + s + ')';
+    } else if (item.type === 'expandWidth') {
+      el.style.width = lerp(0, item.target, ep) + 'px';
+    } else if (item.type === 'slideInLeft') {
+      el.style.left = lerp(-1920, 0, ep) + 'px';
+    } else if (item.type === 'expandStrip') {
+      el.style.transform = 'translateY(-50%) scaleX(' + ep + ')';
+    } else if (item.type === 'fadeIn') {
+      el.style.opacity = ep;
+    } else if (item.type === 'fadeOut') {
+      el.style.opacity = 1 - ep;
+    } else if (item.type === 'expandH') {
+      el.style.height = lerp(0, item.target, ep) + '%';
+    } else if (item.type === 'gradientFade') {
+      el.style.opacity = ep;
+    } else if (item.type === 'slideRight') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateX(' + lerp(30, 0, ep) + 'px)';
+    } else if (item.type === 'expandStripW') {
+      el.style.width = lerp(0, item.target, ep) + '%';
+    }
+  });
+};
+window.setAnimationTime(0);
+window.templateReady = true;
+</script></body></html>

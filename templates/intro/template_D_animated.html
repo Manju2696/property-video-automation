@@ -1,0 +1,74 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1920px;height:1080px;overflow:hidden;font-family:'Poppins',sans-serif;background:#1a1a1a;}
+.sc{border:1.5px solid rgba(255,255,255,0.15);border-radius:12px;padding:16px 24px;text-align:center;}
+.sc img{width:30px;height:30px;filter:invert(1);margin-bottom:6px;}
+</style></head><body>
+<div style="display:flex;width:1920px;height:1080px;">
+<div style="width:1060px;padding:80px 90px;display:flex;flex-direction:column;justify-content:center;">
+  <div id="e0" style="opacity:0;font-size:14px;color:#c8a45e;letter-spacing:5px;">FOR SALE</div>
+  <div id="e1" style="opacity:0;margin-top:16px;font-size:46px;font-weight:700;color:#fff;line-height:1.15;">{{property_name}}</div>
+  <div id="e2" style="width:0;height:2px;background:#c8a45e;margin:30px 0;"></div>
+  <div id="e3" style="opacity:0;display:flex;gap:18px;">
+    <div class="sc"><img src="{{bed_icon}}"><div style="font-size:28px;font-weight:600;color:#fff;">{{bedrooms}}</div><div style="font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:4px;">BEDS</div></div>
+    <div class="sc"><img src="{{bath_icon}}"><div style="font-size:28px;font-weight:600;color:#fff;">{{bathrooms}}</div><div style="font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:4px;">BATHS</div></div>
+    <div class="sc"><img src="{{sqft_icon}}"><div style="font-size:28px;font-weight:600;color:#fff;">{{area_sqft}}</div><div style="font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:4px;">SQ FT</div></div>
+  </div>
+  <div id="e4" style="opacity:0;margin-top:30px;font-size:44px;font-weight:700;color:#c8a45e;">{{listing_price}}</div>
+</div>
+<div style="width:860px;position:relative;"><div id="e5" style="position:absolute;inset:50px;border-radius:14px;overflow:hidden;opacity:0;"><img src="{{photo_1}}" style="width:100%;height:100%;object-fit:cover;"></div></div>
+</div><script>
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+var config = [{id:"e5",delay:0,dur:800,type:"scalePop"},{id:"e0",delay:400,dur:500,type:"fade"},{id:"e1",delay:700,dur:700,type:"slideUp"},{id:"e2",delay:1200,dur:600,type:"expandWidth",target:80},{id:"e3",delay:1600,dur:700,type:"slideUp"},{id:"e4",delay:2300,dur:700,type:"slideUp"}];
+
+window.setAnimationTime = function(timeMs) {
+  config.forEach(function(item) {
+    var el = document.getElementById(item.id);
+    if (!el) return;
+    var progress = 0;
+    if (timeMs < item.delay) progress = 0;
+    else if (timeMs >= item.delay + item.dur) progress = 1;
+    else progress = (timeMs - item.delay) / item.dur;
+    var ep = easeOutCubic(progress);
+    
+    if (item.type === 'fade') {
+      el.style.opacity = ep;
+    } else if (item.type === 'slideUp') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateY(' + lerp(30, 0, ep) + 'px)';
+    } else if (item.type === 'slideLeft') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateX(' + lerp(-40, 0, ep) + 'px)';
+    } else if (item.type === 'scalePop') {
+      el.style.opacity = ep;
+      var s = lerp(0.75, 1, Math.min(1, ep * 1.15));
+      el.style.transform = 'scale(' + s + ')';
+    } else if (item.type === 'expandWidth') {
+      el.style.width = lerp(0, item.target, ep) + 'px';
+    } else if (item.type === 'slideInLeft') {
+      el.style.left = lerp(-1920, 0, ep) + 'px';
+    } else if (item.type === 'expandStrip') {
+      el.style.transform = 'translateY(-50%) scaleX(' + ep + ')';
+    } else if (item.type === 'fadeIn') {
+      el.style.opacity = ep;
+    } else if (item.type === 'fadeOut') {
+      el.style.opacity = 1 - ep;
+    } else if (item.type === 'expandH') {
+      el.style.height = lerp(0, item.target, ep) + '%';
+    } else if (item.type === 'gradientFade') {
+      el.style.opacity = ep;
+    } else if (item.type === 'slideRight') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateX(' + lerp(30, 0, ep) + 'px)';
+    } else if (item.type === 'expandStripW') {
+      el.style.width = lerp(0, item.target, ep) + '%';
+    }
+  });
+};
+window.setAnimationTime(0);
+window.templateReady = true;
+</script></body></html>

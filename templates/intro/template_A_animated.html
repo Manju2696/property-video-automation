@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Poppins', sans-serif; background: #fff; }
+.container { display: flex; width: 1920px; height: 1080px; }
+.left { width: 960px; background: #fff; display: flex; flex-direction: column; justify-content: center; padding: 0 80px; }
+.right { width: 960px; display: flex; flex-direction: column; }
+.right-slot { width: 960px; height: 540px; overflow: hidden; flex-shrink: 0; }
+.right-img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; }
+.address { font-weight: 700; font-size: 44px; color: #1a1a1a; line-height: 1.2; max-width: 800px; opacity: 0; }
+.sub-label { font-size: 14px; color: #aaa; letter-spacing: 4px; font-weight: 400; margin-top: 50px; opacity: 0; }
+.icons-row { display: flex; gap: 50px; margin-top: 24px; opacity: 0; }
+.icon-item { text-align: center; }
+.icon-circle { width: 74px; height: 74px; border: 2px solid #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+.icon-circle img { width: 36px; height: 36px; }
+.icon-label { font-size: 16px; color: #555; font-weight: 500; letter-spacing: 1px; }
+.price-row { margin-top: 50px; display: flex; align-items: baseline; gap: 14px; opacity: 0; }
+.price-label { font-weight: 700; font-size: 18px; color: #1a1a1a; letter-spacing: 1px; }
+.price-value { font-weight: 600; font-size: 42px; color: #1a1a1a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="left">
+    <div class="address" id="addr">{{property_name}}</div>
+    <div class="sub-label" id="sublabel">PROPERTY DETAILS</div>
+    <div class="icons-row" id="icons">
+      <div class="icon-item">
+        <div class="icon-circle"><img src="{{bed_icon}}"></div>
+        <div class="icon-label">{{bedrooms}} BEDS</div>
+      </div>
+      <div class="icon-item">
+        <div class="icon-circle"><img src="{{bath_icon}}"></div>
+        <div class="icon-label">{{bathrooms}} BATHS</div>
+      </div>
+      <div class="icon-item">
+        <div class="icon-circle"><img src="{{sqft_icon}}"></div>
+        <div class="icon-label">{{area_sqft}} SQ FT</div>
+      </div>
+    </div>
+    <div class="price-row" id="price">
+      <span class="price-label">LIST PRICE:</span>
+      <span class="price-value">{{listing_price}}</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="right-slot"><img src="{{photo_1}}" class="right-img" id="photo1" alt=""></div>
+    <div class="right-slot"><img src="{{photo_2}}" class="right-img" id="photo2" alt=""></div>
+  </div>
+</div>
+<script>
+// IMPORTANT: Animation does NOT start automatically.
+// It waits for a signal. Playwright will call window.startAnimation()
+// For each frame capture, Playwright advances the animation manually.
+
+var animationStarted = false;
+var startTime = 0;
+var frameNumber = 0;
+
+// All elements with their animation config
+// delay = when animation starts (ms), duration = animation length (ms)
+var elements = [
+  { el: document.getElementById('photo1'),  delay: 0,    duration: 800, type: 'fade' },
+  { el: document.getElementById('photo2'),  delay: 200,  duration: 800, type: 'fade' },
+  { el: document.getElementById('addr'),    delay: 500,  duration: 800, type: 'slideUp' },
+  { el: document.getElementById('sublabel'),delay: 1200, duration: 700, type: 'slideUp' },
+  { el: document.getElementById('icons'),   delay: 1400, duration: 700, type: 'slideUp' },
+  { el: document.getElementById('price'),   delay: 2200, duration: 700, type: 'slideUp' },
+];
+
+// Ease out cubic: fast start, slow end
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// Set animation state at a specific time (in ms)
+window.setAnimationTime = function(timeMs) {
+  elements.forEach(function(item) {
+    var el = item.el;
+    var progress = 0;
+    
+    if (timeMs < item.delay) {
+      progress = 0;
+    } else if (timeMs >= item.delay + item.duration) {
+      progress = 1;
+    } else {
+      progress = (timeMs - item.delay) / item.duration;
+    }
+    
+    var easedProgress = easeOutCubic(progress);
+    
+    if (item.type === 'fade') {
+      el.style.opacity = easedProgress;
+    } else if (item.type === 'slideUp') {
+      var translateY = 30 * (1 - easedProgress);
+      el.style.opacity = easedProgress;
+      el.style.transform = 'translateY(' + translateY + 'px)';
+    }
+  });
+};
+
+// Initialize everything hidden
+window.setAnimationTime(0);
+
+// Signal that the page is ready
+window.templateReady = true;
+</script>
+</body>
+</html>

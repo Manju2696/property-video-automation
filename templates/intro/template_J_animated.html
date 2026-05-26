@@ -1,0 +1,76 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1920px;height:1080px;overflow:hidden;font-family:'Poppins',sans-serif;background:#000;}
+</style></head><body>
+<div style="position:relative;width:1920px;height:1080px;">
+<img src="{{photo_1}}" id="bg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;">
+<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.3) 35%,transparent 65%);"></div>
+<div style="position:absolute;bottom:0;left:0;right:0;padding:50px 80px;">
+  <div id="e0" style="opacity:0;display:flex;justify-content:space-between;align-items:flex-end;">
+    <div><div style="font-size:42px;font-weight:700;color:#fff;line-height:1.15;">{{property_name}}</div></div>
+    <div style="font-size:44px;font-weight:700;color:#c8a45e;">{{listing_price}}</div>
+  </div>
+  <div id="e1" style="width:0;height:1.5px;background:rgba(255,255,255,0.2);margin:20px 0;"></div>
+  <div id="e2" style="opacity:0;display:flex;gap:32px;">
+    <div style="display:flex;align-items:center;gap:10px;"><img src="{{bed_icon}}" style="width:24px;height:24px;filter:invert(1);"><span style="font-size:17px;color:rgba(255,255,255,0.8);">{{bedrooms}} Beds</span></div>
+    <div style="display:flex;align-items:center;gap:10px;"><img src="{{bath_icon}}" style="width:24px;height:24px;filter:invert(1);"><span style="font-size:17px;color:rgba(255,255,255,0.8);">{{bathrooms}} Baths</span></div>
+    <div style="display:flex;align-items:center;gap:10px;"><img src="{{sqft_icon}}" style="width:24px;height:24px;filter:invert(1);"><span style="font-size:17px;color:rgba(255,255,255,0.8);">{{area_sqft}} Sq Ft</span></div>
+  </div>
+</div></div><script>
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+var config = [{id:"bg",delay:0,dur:800,type:"fade"},{id:"e0",delay:500,dur:700,type:"slideUp"},{id:"e1",delay:1100,dur:800,type:"expandWidth",target:1760},{id:"e2",delay:1600,dur:700,type:"slideUp"}];
+
+window.setAnimationTime = function(timeMs) {
+  config.forEach(function(item) {
+    var el = document.getElementById(item.id);
+    if (!el) return;
+    var progress = 0;
+    if (timeMs < item.delay) progress = 0;
+    else if (timeMs >= item.delay + item.dur) progress = 1;
+    else progress = (timeMs - item.delay) / item.dur;
+    var ep = easeOutCubic(progress);
+    
+    if (item.type === 'fade') {
+      el.style.opacity = ep;
+    } else if (item.type === 'slideUp') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateY(' + lerp(30, 0, ep) + 'px)';
+    } else if (item.type === 'slideLeft') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateX(' + lerp(-40, 0, ep) + 'px)';
+    } else if (item.type === 'scalePop') {
+      el.style.opacity = ep;
+      var s = lerp(0.75, 1, Math.min(1, ep * 1.15));
+      el.style.transform = 'scale(' + s + ')';
+    } else if (item.type === 'expandWidth') {
+      el.style.width = lerp(0, item.target, ep) + 'px';
+    } else if (item.type === 'slideInLeft') {
+      el.style.left = lerp(-1920, 0, ep) + 'px';
+    } else if (item.type === 'expandStrip') {
+      el.style.transform = 'translateY(-50%) scaleX(' + ep + ')';
+    } else if (item.type === 'fadeIn') {
+      el.style.opacity = ep;
+    } else if (item.type === 'fadeOut') {
+      el.style.opacity = 1 - ep;
+    } else if (item.type === 'expandH') {
+      el.style.height = lerp(0, item.target, ep) + '%';
+    } else if (item.type === 'gradientFade') {
+      el.style.opacity = ep;
+    } else if (item.type === 'slideRight') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateX(' + lerp(30, 0, ep) + 'px)';
+    } else if (item.type === 'expandStripW') {
+      el.style.width = lerp(0, item.target, ep) + '%';
+    }
+  });
+};
+window.setAnimationTime(0);
+window.templateReady = true;
+</script></body></html>
+
+OUTRO TEMPLATES (1-10)
+----------------------

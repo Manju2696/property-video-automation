@@ -1,0 +1,79 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1920px;height:1080px;overflow:hidden;font-family:'Poppins',sans-serif;background:#000;}
+.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;opacity:0;}
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,0.55);}
+.c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.gl{width:0;height:3px;background:#c8a45e;margin:24px 0;}
+.ic{width:64px;height:64px;border:2px solid rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
+.ic img{width:30px;height:30px;filter:invert(1);}
+</style></head><body>
+<img src="{{photo_1}}" class="bg" id="bg">
+<div class="overlay"></div>
+<div class="c">
+  <div id="e0" style="opacity:0;width:60px;height:3px;background:#c8a45e;"></div>
+  <div id="e1" style="opacity:0;margin-top:24px;font-size:48px;font-weight:700;color:#fff;letter-spacing:2px;">{{property_name}}</div>
+  <div id="e2" style="opacity:0;display:flex;gap:36px;margin-top:30px;align-items:center;">
+    <div style="text-align:center;"><div class="ic"><img src="{{bed_icon}}"></div><div style="font-size:24px;font-weight:600;color:#fff;">{{bedrooms}}</div><div style="font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:2px;">BEDS</div></div>
+    <div style="width:1px;height:60px;background:rgba(255,255,255,0.2);"></div>
+    <div style="text-align:center;"><div class="ic"><img src="{{bath_icon}}"></div><div style="font-size:24px;font-weight:600;color:#fff;">{{bathrooms}}</div><div style="font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:2px;">BATHS</div></div>
+    <div style="width:1px;height:60px;background:rgba(255,255,255,0.2);"></div>
+    <div style="text-align:center;"><div class="ic"><img src="{{sqft_icon}}"></div><div style="font-size:24px;font-weight:600;color:#fff;">{{area_sqft}}</div><div style="font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:2px;">SQ FT</div></div>
+  </div>
+  <div id="e3" style="opacity:0;margin-top:30px;font-size:46px;font-weight:700;color:#c8a45e;">{{listing_price}}</div>
+  <div id="e4" style="opacity:0;width:60px;height:3px;background:#c8a45e;margin-top:24px;"></div>
+</div><script>
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+var config = [{id:"bg",delay:0,dur:800,type:"fade"},{id:"e0",delay:400,dur:600,type:"fade"},{id:"e1",delay:700,dur:700,type:"slideUp"},{id:"e2",delay:1400,dur:700,type:"slideUp"},{id:"e3",delay:2200,dur:700,type:"slideUp"},{id:"e4",delay:2600,dur:500,type:"fade"}];
+
+window.setAnimationTime = function(timeMs) {
+  config.forEach(function(item) {
+    var el = document.getElementById(item.id);
+    if (!el) return;
+    var progress = 0;
+    if (timeMs < item.delay) progress = 0;
+    else if (timeMs >= item.delay + item.dur) progress = 1;
+    else progress = (timeMs - item.delay) / item.dur;
+    var ep = easeOutCubic(progress);
+    
+    if (item.type === 'fade') {
+      el.style.opacity = ep;
+    } else if (item.type === 'slideUp') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateY(' + lerp(30, 0, ep) + 'px)';
+    } else if (item.type === 'slideLeft') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateX(' + lerp(-40, 0, ep) + 'px)';
+    } else if (item.type === 'scalePop') {
+      el.style.opacity = ep;
+      var s = lerp(0.75, 1, Math.min(1, ep * 1.15));
+      el.style.transform = 'scale(' + s + ')';
+    } else if (item.type === 'expandWidth') {
+      el.style.width = lerp(0, item.target, ep) + 'px';
+    } else if (item.type === 'slideInLeft') {
+      el.style.left = lerp(-1920, 0, ep) + 'px';
+    } else if (item.type === 'expandStrip') {
+      el.style.transform = 'translateY(-50%) scaleX(' + ep + ')';
+    } else if (item.type === 'fadeIn') {
+      el.style.opacity = ep;
+    } else if (item.type === 'fadeOut') {
+      el.style.opacity = 1 - ep;
+    } else if (item.type === 'expandH') {
+      el.style.height = lerp(0, item.target, ep) + '%';
+    } else if (item.type === 'gradientFade') {
+      el.style.opacity = ep;
+    } else if (item.type === 'slideRight') {
+      el.style.opacity = ep;
+      el.style.transform = 'translateX(' + lerp(30, 0, ep) + 'px)';
+    } else if (item.type === 'expandStripW') {
+      el.style.width = lerp(0, item.target, ep) + '%';
+    }
+  });
+};
+window.setAnimationTime(0);
+window.templateReady = true;
+</script></body></html>
