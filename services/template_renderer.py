@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -108,6 +109,15 @@ def _run_ffmpeg(args: list[str], step: str) -> None:
         raise RuntimeError(f"FFmpeg failed ({step}): {result.stderr}")
 
 
+def _launch_chromium(playwright):
+    if os.getenv("STREAMLIT_SHARING") or os.getenv("STREAMLIT_RUNTIME_ENV") == "cloud":
+        raise RuntimeError(
+            "Playwright browser rendering is not supported on Streamlit Cloud. "
+            "Run preview/export locally, or deploy to a server with Playwright and Chromium installed."
+        )
+    return playwright.chromium.launch(headless=True)
+
+
 def render_template_frame(
     template_path: Path,
     context: dict[str, str],
@@ -124,7 +134,7 @@ def render_template_frame(
         html_path.write_text(html, encoding="utf-8")
 
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch()
+            browser = _launch_chromium(playwright)
             page = browser.new_page(viewport={"width": width, "height": height})
             page.goto(html_path.resolve().as_uri())
             page.wait_for_function("window.templateReady === true")
@@ -161,7 +171,7 @@ def render_template_video(
 
         total_frames = max(1, int(duration_ms / 1000 * fps))
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch()
+            browser = _launch_chromium(playwright)
             page = browser.new_page(viewport={"width": width, "height": height})
             page.goto(html_path.resolve().as_uri())
             page.wait_for_function("window.templateReady === true")
