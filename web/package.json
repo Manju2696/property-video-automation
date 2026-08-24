@@ -1,0 +1,43 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "studio": "remotion studio src/remotion/index.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@remotion/bundler": "^4.0.506",
+    "@remotion/cli": "^4.0.506",
+    "@remotion/media-utils": "^4.0.506",
+    "@remotion/player": "^4.0.506",
+    "@remotion/renderer": "^4.0.506",
+    "dotenv": "^17.4.2",
+    "jose": "^6.2.8",
+    "next": "15.5.23",
+    "prisma": "^5.22.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "^4.0.506",
+    "uuid": "^14.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.23",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
