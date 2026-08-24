@@ -16,6 +16,22 @@ npm run dev
 
 See [web/README.md](web/README.md) for details. Default login password: `admin123`.
 
+## Deploy on Vercel
+
+Import the GitHub repo, then set **Root Directory** to `web` (Project Settings → General).  
+If Root Directory is left as `.`, Vercel may detect Python `app.py` and fail with a missing `app` / `handler` error.
+
+Required env vars in the Vercel project (same as `web/.env.example`):
+
+| Variable | Notes |
+|----------|--------|
+| `DATABASE_URL` | Local SQLite (`file:…`) will **not** persist on Vercel. Use Postgres (e.g. Neon) for production. |
+| `APP_PASSWORD` | Login password |
+| `AUTH_SECRET` | Long random string |
+| `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` | Classification |
+
+**Limits on Vercel serverless:** photo files and SQLite live on ephemeral disk (not durable), and Remotion MP4 export needs Chromium/FFmpeg — use local `npm run dev` for reliable export, or Remotion Lambda later.
+
 ## Legacy Streamlit app
 
 The original Python/Streamlit + FFmpeg/Playwright pipeline remains in this repo for reference.

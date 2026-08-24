@@ -17,6 +17,14 @@ export async function POST(req: Request, ctx: Ctx) {
   const authError = await guardAuth();
   if (authError) return authError;
 
+  // Remotion needs Chromium + writable disk; Vercel serverless cannot export MP4s.
+  if (process.env.VERCEL) {
+    return jsonError(
+      "MP4 export is not available on Vercel. Run the app locally (npm run dev) to export, or use Remotion Lambda.",
+      501,
+    );
+  }
+
   const { id } = await ctx.params;
   const projectId = Number(id);
   const body = await req.json().catch(() => ({}));

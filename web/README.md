@@ -34,6 +34,23 @@ Remotion Studio (composition debugging):
 npm run studio
 ```
 
+## Deploy on Vercel
+
+1. Import [Manju2696/property-video-automation](https://github.com/Manju2696/property-video-automation)
+2. Set **Root Directory** to `web` (required — otherwise Vercel looks at Python `app.py` and errors)
+3. Framework preset: **Next.js**
+4. Add env vars from `.env.example`
+5. For production data, point `DATABASE_URL` at **Postgres** (Neon, Supabase, etc.) — SQLite file URLs do not work on Vercel
+
+CLI (from this folder):
+
+```bash
+cd web
+vercel
+```
+
+MP4 export and durable photo storage are designed for local/server disk; on Vercel the UI/preview and classification APIs can run, but expect export/uploads to need Blob storage + Remotion Lambda for a full cloud setup.
+
 ## Flow
 
 1. **Dashboard** — browse projects
