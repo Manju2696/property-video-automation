@@ -75,6 +75,7 @@ export default function NewProjectPage() {
     setBusy(true);
     setError("");
     try {
+      // 1) Create project without photos (avoids Vercel ~4.5MB body limit)
       const form = new FormData();
       form.set("name", name);
       form.set("beds", String(beds));
@@ -94,14 +95,15 @@ export default function NewProjectPage() {
         form.set("agentPhone", agentPhone);
         form.set("agentEmail", agentEmail);
       }
-      files.forEach((f) => form.append("photos", f));
 
       const res = await fetch("/api/projects", { method: "POST", body: form });
       let data: { project?: { id: number }; error?: string } = {};
       try {
         data = await res.json();
       } catch {
-        setError("Upload failed. Try fewer or smaller photos.");
+        setError(
+          `Create failed (HTTP ${res.status}). Check that env vars are set, then redeploy.`,
+        );
         return;
       }
       if (!res.ok || !data.project?.id) {
@@ -110,6 +112,36 @@ export default function NewProjectPage() {
       }
 
       const projectId = data.project.id;
+
+      // 2) Upload photos one-by-one (each request stays under Vercel body limit)
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 4_000_000) {
+          setError(
+            `"${file.name}" is over 4MB. Compress it or use the local app for large originals.`,
+          );
+          return;
+        }
+        const photoForm = new FormData();
+        photoForm.set("startOrder", String(i));
+        photoForm.append("photos", file);
+        const up = await fetch(`/api/projects/${projectId}/photos`, {
+          method: "POST",
+          body: photoForm,
+        });
+        if (!up.ok) {
+          let msg = `Photo ${i + 1}/${files.length} failed (HTTP ${up.status})`;
+          try {
+            const errBody = await up.json();
+            if (errBody.error) msg = errBody.error;
+          } catch {
+            /* ignore */
+          }
+          setError(msg);
+          return;
+        }
+      }
+
       // Classification can take a while; never block forever on it
       try {
         const classifyRes = await fetch(`/api/projects/${projectId}/classify`, {

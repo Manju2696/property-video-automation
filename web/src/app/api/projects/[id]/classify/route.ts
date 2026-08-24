@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { guardAuth, jsonError } from "@/lib/api";
 import { classifyImages, sequencePriority } from "@/lib/classify";
+import { ensureDb } from "@/lib/ensure-db";
 import { absoluteDataPath } from "@/lib/paths";
 import { prisma } from "@/lib/prisma";
 import { serializeProject } from "@/lib/project-video";
@@ -12,6 +13,7 @@ export const maxDuration = 300;
 export async function POST(_req: Request, ctx: Ctx) {
   const authError = await guardAuth();
   if (authError) return authError;
+  await ensureDb();
 
   const { id } = await ctx.params;
   const projectId = Number(id);

@@ -1,0 +1,15 @@
+# Local CLI deploys — Git deploys ignore this and use .gitignore
+.vercel
+node_modules
+web/node_modules
+web/.next
+web/data/uploads
+web/data/exports
+web/data/*.db
+web/data/*.db-journal
+.venv
+__pycache__
+data/uploads
+data/exports
+*.mp4
+.DS_Store

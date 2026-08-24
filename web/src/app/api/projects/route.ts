@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import { guardAuth, jsonError } from "@/lib/api";
+import { ensureDb } from "@/lib/ensure-db";
 import { prisma } from "@/lib/prisma";
 import { serializeProject } from "@/lib/project-video";
 import { projectUploadDir } from "@/lib/paths";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function GET(req: Request) {
   const authError = await guardAuth();
   if (authError) return authError;
+  await ensureDb();
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
@@ -30,6 +35,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const authError = await guardAuth();
   if (authError) return authError;
+  await ensureDb();
 
   let form: FormData;
   try {
@@ -37,7 +43,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Failed to parse upload FormData", error);
     return jsonError(
-      "Upload too large or incomplete. Try fewer / smaller photos (under ~80MB total).",
+      "Upload too large for this host. Photos are uploaded one at a time — retry, or use the local app for big batches.",
       413,
     );
   }

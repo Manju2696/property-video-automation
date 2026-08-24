@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { guardAuth, jsonError } from "@/lib/api";
+import { ensureDb } from "@/lib/ensure-db";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const authError = await guardAuth();
   if (authError) return authError;
+  await ensureDb();
   const agents = await prisma.agent.findMany({ orderBy: { name: "asc" } });
   return NextResponse.json({ agents });
 }
@@ -12,6 +14,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const authError = await guardAuth();
   if (authError) return authError;
+  await ensureDb();
 
   const body = await req.json().catch(() => null);
   if (!body?.name) return jsonError("Name is required");

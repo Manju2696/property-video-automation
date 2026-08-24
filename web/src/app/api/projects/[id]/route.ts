@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { guardAuth, jsonError } from "@/lib/api";
+import { ensureDb } from "@/lib/ensure-db";
 import { prisma } from "@/lib/prisma";
 import { serializeProject } from "@/lib/project-video";
 
@@ -8,6 +9,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(_req: Request, ctx: Ctx) {
   const authError = await guardAuth();
   if (authError) return authError;
+  await ensureDb();
 
   const { id } = await ctx.params;
   const project = await prisma.project.findUnique({
@@ -21,6 +23,7 @@ export async function GET(_req: Request, ctx: Ctx) {
 export async function PATCH(req: Request, ctx: Ctx) {
   const authError = await guardAuth();
   if (authError) return authError;
+  await ensureDb();
 
   const { id } = await ctx.params;
   const body = await req.json().catch(() => ({}));

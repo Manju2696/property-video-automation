@@ -1,10 +1,17 @@
 import path from "path";
 
 export const ROOT_DIR = process.cwd();
-export const DATA_DIR = path.join(ROOT_DIR, "data");
+
+/** On Vercel only /tmp is writable; locally use web/data */
+export const DATA_DIR = process.env.VERCEL
+  ? path.join("/tmp", "property-video-data")
+  : path.join(ROOT_DIR, "data");
+
 export const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 export const EXPORTS_DIR = path.join(DATA_DIR, "exports");
-export const MUSIC_DIR = path.join(DATA_DIR, "music");
+export const MUSIC_DIR = process.env.VERCEL
+  ? path.join(ROOT_DIR, "data", "music") // bundled with deploy (read-only OK)
+  : path.join(DATA_DIR, "music");
 
 export function projectUploadDir(projectId: number | string) {
   return path.join(UPLOADS_DIR, String(projectId));
