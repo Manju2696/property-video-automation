@@ -87,14 +87,27 @@ const GEMINI_MODELS = [
   "gemini-1.5-flash",
 ];
 
+async function readImageBytes(imagePath: string) {
+  if (/^https?:\/\//i.test(imagePath)) {
+    const res = await fetch(imagePath);
+    if (!res.ok) throw new Error(`Failed to fetch image ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    const mime =
+      res.headers.get("content-type") ||
+      mimeFor(imagePath.split("?")[0] || imagePath);
+    return { bytes: buf, mime };
+  }
+  const bytes = await fs.readFile(imagePath);
+  return { bytes, mime: mimeFor(imagePath) };
+}
+
 async function classifyWithGemini(imagePath: string) {
   const key = process.env.GEMINI_API_KEY?.trim();
   if (!key) return null;
 
   try {
-    const bytes = await fs.readFile(imagePath);
+    const { bytes, mime } = await readImageBytes(imagePath);
     const b64 = bytes.toString("base64");
-    const mime = mimeFor(imagePath);
 
     for (const model of GEMINI_MODELS) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
@@ -145,9 +158,8 @@ async function classifyWithAnthropic(imagePath: string) {
   if (!key) return null;
 
   try {
-    const bytes = await fs.readFile(imagePath);
+    const { bytes, mime } = await readImageBytes(imagePath);
     const b64 = bytes.toString("base64");
-    const mime = mimeFor(imagePath);
 
     const res = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
       method: "POST",

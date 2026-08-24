@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
 import { guardAuth, jsonError } from "@/lib/api";
 import { ensureDb } from "@/lib/ensure-db";
 import { prisma } from "@/lib/prisma";
-import { projectUploadDir } from "@/lib/paths";
 import { serializeProject } from "@/lib/project-video";
+import { saveUploadFile } from "@/lib/storage";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -35,9 +33,6 @@ export async function POST(req: Request, ctx: Ctx) {
   }
 
   const startOrder = Number(form.get("startOrder") || 0);
-  const uploadDir = projectUploadDir(projectId);
-  await fs.mkdir(uploadDir, { recursive: true });
-
   const files = form
     .getAll("photos")
     .filter((f): f is File => f instanceof File && f.size > 0);
@@ -46,16 +41,17 @@ export async function POST(req: Request, ctx: Ctx) {
   for (const file of files) {
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const filename = `${Date.now()}_${order}_${safe}`;
-    const abs = path.join(uploadDir, filename);
+    const rel = `uploads/${projectId}/${filename}`;
     const buf = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(abs, buf);
-    const rel = path
-      .join("uploads", String(projectId), filename)
-      .replace(/\\/g, "/");
+    const stored = await saveUploadFile(
+      rel,
+      buf,
+      file.type || "image/jpeg",
+    );
     await prisma.photo.create({
       data: {
         projectId,
-        filePath: rel,
+        filePath: stored,
         sequenceOrder: order,
         roomType: "Other",
         confidence: 0,

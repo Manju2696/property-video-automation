@@ -3,11 +3,18 @@ import { prisma } from "./prisma";
 let ready: Promise<void> | null = null;
 
 /**
- * SQLite on Vercel uses /tmp — empty on cold start. Create tables if missing.
+ * Local SQLite (/tmp on Vercel was ephemeral — prefer Postgres in production).
+ * For file: databases, create tables if missing.
  */
 export function ensureDb() {
   if (!ready) {
     ready = (async () => {
+      const url = process.env.DATABASE_URL || "";
+      if (!url.startsWith("file:")) {
+        // Postgres / Neon — schema applied via prisma migrate / db push
+        return;
+      }
+
       await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "Agent" (
           "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

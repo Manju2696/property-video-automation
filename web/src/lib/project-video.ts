@@ -31,6 +31,7 @@ function publicAssetUrl(
 }
 
 export function photoPublicUrl(photo: Photo) {
+  if (/^https?:\/\//i.test(photo.filePath)) return photo.filePath;
   return mediaUrl(photo.filePath);
 }
 
@@ -74,6 +75,7 @@ export function buildVideoProps(
   }
 
   const toUrl = (rel: string) => {
+    if (/^https?:\/\//i.test(rel)) return rel;
     const cleaned = rel.replace(/^\/+/, "").replace(/\\/g, "/");
     if (options.assetOrigin) {
       return `${options.assetOrigin}/data/${cleaned}`;

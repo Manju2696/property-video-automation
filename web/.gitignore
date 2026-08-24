@@ -61,3 +61,5 @@ skills-lock.json
 
 .claude/
 .windsurf/
+
+.env.vercel

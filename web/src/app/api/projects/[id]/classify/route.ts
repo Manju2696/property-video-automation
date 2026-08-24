@@ -31,7 +31,9 @@ export async function POST(_req: Request, ctx: Ctx) {
 
   try {
     const paths = project.photos.map((photo) =>
-      absoluteDataPath(photo.filePath),
+      /^https?:\/\//i.test(photo.filePath)
+        ? photo.filePath
+        : absoluteDataPath(photo.filePath),
     );
     const results = await classifyImages(paths, 3);
 

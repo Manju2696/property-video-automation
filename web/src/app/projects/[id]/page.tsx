@@ -49,15 +49,27 @@ export default function ReviewPage() {
   const router = useRouter();
   const id = String(params.id);
   const [project, setProject] = useState<Project | null>(null);
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [musicTracks, setMusicTracks] = useState<string[]>(["None"]);
   const [classifying, setClassifying] = useState(false);
 
   const load = useCallback(async () => {
+    setLoadError("");
     const res = await fetch(`/api/projects/${id}`);
-    const data = await res.json();
-    if (res.ok) setProject(data.project);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.project) {
+      setProject(data.project);
+      return;
+    }
+    setProject(null);
+    setLoadError(
+      data.error ||
+        (res.status === 404
+          ? "Project not found. On Vercel, data must use Postgres — SQLite in /tmp is lost between requests."
+          : `Failed to load project (HTTP ${res.status})`),
+    );
   }, [id]);
 
   useEffect(() => {
@@ -185,7 +197,28 @@ export default function ReviewPage() {
   if (!project || !videoProps) {
     return (
       <AppShell title="Review">
-        <p className="text-[var(--muted)]">Loading project…</p>
+        {loadError ? (
+          <div className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-8">
+            <p className="text-[var(--danger)]">{loadError}</p>
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => load()}
+                className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold"
+              >
+                Retry
+              </button>
+              <Link
+                href="/"
+                className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+              >
+                Back to dashboard
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <p className="text-[var(--muted)]">Loading project…</p>
+        )}
       </AppShell>
     );
   }

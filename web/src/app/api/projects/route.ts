@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
 import { guardAuth, jsonError } from "@/lib/api";
 import { ensureDb } from "@/lib/ensure-db";
 import { prisma } from "@/lib/prisma";
 import { serializeProject } from "@/lib/project-video";
-import { projectUploadDir } from "@/lib/paths";
+import { saveUploadFile } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -43,7 +41,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Failed to parse upload FormData", error);
     return jsonError(
-      "Upload too large for this host. Photos are uploaded one at a time — retry, or use the local app for big batches.",
+      "Upload too large for this host. Photos are uploaded in batches — retry, or use the local app for big batches.",
       413,
     );
   }
@@ -98,22 +96,20 @@ export async function POST(req: Request) {
     },
   });
 
-  const uploadDir = projectUploadDir(project.id);
-  await fs.mkdir(uploadDir, { recursive: true });
-
-  const files = form.getAll("photos").filter((f): f is File => f instanceof File);
+  const files = form
+    .getAll("photos")
+    .filter((f): f is File => f instanceof File);
   let order = 0;
   for (const file of files) {
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const filename = `${Date.now()}_${order}_${safe}`;
-    const abs = path.join(uploadDir, filename);
+    const rel = `uploads/${project.id}/${filename}`;
     const buf = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(abs, buf);
-    const rel = path.join("uploads", String(project.id), filename).replace(/\\/g, "/");
+    const stored = await saveUploadFile(rel, buf, file.type || "image/jpeg");
     await prisma.photo.create({
       data: {
         projectId: project.id,
-        filePath: rel,
+        filePath: stored,
         sequenceOrder: order,
         roomType: "Other",
         confidence: 0,
