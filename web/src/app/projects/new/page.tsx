@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { TemplatePicker } from "@/components/TemplatePicker";
 import { ANIMATION_STYLES } from "@/lib/constants";
+import { batchFiles, compressImageForUpload } from "@/lib/compress-image";
 
 type Agent = { id: number; name: string; phone: string | null; email: string | null };
 
@@ -33,6 +34,7 @@ export default function NewProjectPage() {
   const [photoDuration, setPhotoDuration] = useState(4);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [uploadStatus, setUploadStatus] = useState("");
 
   useEffect(() => {
     fetch("/api/agents")
@@ -74,6 +76,7 @@ export default function NewProjectPage() {
   async function createProject() {
     setBusy(true);
     setError("");
+    setUploadStatus("Creating project…");
     try {
       // 1) Create project without photos (avoids Vercel ~4.5MB body limit)
       const form = new FormData();
@@ -113,24 +116,32 @@ export default function NewProjectPage() {
 
       const projectId = data.project.id;
 
-      // 2) Upload photos one-by-one (each request stays under Vercel body limit)
+      // 2) Compress all selected photos, then upload in batches (still one “Choose photos”)
+      setUploadStatus(`Preparing ${files.length} photos…`);
+      const compressed: File[] = [];
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.size > 4_000_000) {
-          setError(
-            `"${file.name}" is over 4MB. Compress it or use the local app for large originals.`,
-          );
-          return;
-        }
+        setUploadStatus(`Compressing ${i + 1}/${files.length}…`);
+        compressed.push(await compressImageForUpload(files[i]));
+      }
+
+      const batches = batchFiles(compressed);
+      let uploaded = 0;
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b];
+        setUploadStatus(
+          `Uploading ${uploaded + 1}–${uploaded + batch.length} of ${files.length}…`,
+        );
         const photoForm = new FormData();
-        photoForm.set("startOrder", String(i));
-        photoForm.append("photos", file);
+        photoForm.set("startOrder", String(uploaded));
+        for (const file of batch) {
+          photoForm.append("photos", file);
+        }
         const up = await fetch(`/api/projects/${projectId}/photos`, {
           method: "POST",
           body: photoForm,
         });
         if (!up.ok) {
-          let msg = `Photo ${i + 1}/${files.length} failed (HTTP ${up.status})`;
+          let msg = `Upload failed at photo ${uploaded + 1} (HTTP ${up.status})`;
           try {
             const errBody = await up.json();
             if (errBody.error) msg = errBody.error;
@@ -140,9 +151,10 @@ export default function NewProjectPage() {
           setError(msg);
           return;
         }
+        uploaded += batch.length;
       }
 
-      // Classification can take a while; never block forever on it
+      setUploadStatus("Classifying rooms…");
       try {
         const classifyRes = await fetch(`/api/projects/${projectId}/classify`, {
           method: "POST",
@@ -159,6 +171,7 @@ export default function NewProjectPage() {
       setError("Something went wrong creating the project. Please try again.");
     } finally {
       setBusy(false);
+      setUploadStatus("");
     }
   }
 
@@ -179,12 +192,13 @@ export default function NewProjectPage() {
         <section className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-8">
           <h2 className="text-xl font-semibold">Upload listing photos</h2>
           <p className="mt-2 text-[var(--muted)]">
-            JPG, PNG, or WebP. AI will classify rooms after you create the project.
+            Select all listing photos at once (JPG, PNG, or WebP). They are
+            compressed and uploaded automatically — you do not add them one by one.
           </p>
           <label className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--line)] bg-white px-6 py-16">
             <span className="font-semibold text-[var(--accent)]">Choose photos</span>
             <span className="mt-2 text-sm text-[var(--muted)]">
-              {files.length ? `${files.length} selected` : "Drop or browse files"}
+              {files.length ? `${files.length} selected` : "Drop or browse many files"}
             </span>
             <input
               type="file"
@@ -344,6 +358,9 @@ export default function NewProjectPage() {
       )}
 
       {error ? <p className="mt-4 text-[var(--danger)]">{error}</p> : null}
+      {busy && uploadStatus ? (
+        <p className="mt-4 text-sm text-[var(--muted)]">{uploadStatus}</p>
+      ) : null}
 
       <div className="mt-8 flex justify-between">
         <button
@@ -370,7 +387,7 @@ export default function NewProjectPage() {
             disabled={busy}
             onClick={createProject}
           >
-            {busy ? "Creating & classifying…" : "Create project"}
+            {busy ? uploadStatus || "Working…" : "Create project"}
           </button>
         )}
       </div>
