@@ -18,8 +18,11 @@ See [web/README.md](web/README.md) for details. Default login password: `admin12
 
 ## Deploy on Vercel
 
-Import the GitHub repo, then set **Root Directory** to `web` (Project Settings → General).  
-If Root Directory is left as `.`, Vercel may detect Python `app.py` and fail with a missing `app` / `handler` error.
+Import the GitHub repo. This repo includes a root `vercel.json` with `"rootDirectory": "web"` so Next.js is built from `web/`.
+
+If the dashboard still shows the wrong folder: **Settings → General → Root Directory → `web`**.
+
+Do **not** leave Root Directory as `.` / empty — that is the Python/Streamlit tree and causes “No Next.js version detected”.
 
 Required env vars in the Vercel project (same as `web/.env.example`):
 
