@@ -12,7 +12,9 @@ export default function ExportPage() {
     "landscape",
   );
   const [busy, setBusy] = useState(false);
+  const [statusLabel, setStatusLabel] = useState("");
   const [error, setError] = useState("");
+  const [warning, setWarning] = useState("");
   const [outputs, setOutputs] = useState<Record<string, string>>({});
   const [projectName, setProjectName] = useState("Project");
 
@@ -27,19 +29,50 @@ export default function ExportPage() {
   async function render() {
     setBusy(true);
     setError("");
+    setWarning("");
     setOutputs({});
-    const res = await fetch(`/api/projects/${id}/render`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ format }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setError(data.error || "Render failed");
-      return;
+    setStatusLabel("Starting the render");
+    const started = Date.now();
+    try {
+      const res = await fetch(`/api/projects/${id}/render`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Render failed");
+      }
+
+      while (Date.now() - started < 45 * 60 * 1000) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const statusRes = await fetch(`/api/projects/${id}/render`);
+        const status = await statusRes.json().catch(() => ({}));
+        if (!statusRes.ok) {
+          throw new Error(status.error || "Lost contact with the renderer");
+        }
+        if (status.status === "failed") {
+          throw new Error(status.error || "Render failed");
+        }
+        const progress =
+          typeof status.progress === "number" ? status.progress : 0;
+        setStatusLabel(
+          progress > 0
+            ? `${status.label || "Rendering"} · ${progress}%`
+            : status.label || "Preparing the video",
+        );
+        if (status.status === "done") {
+          setOutputs(status.outputs || {});
+          setWarning(status.warning || "");
+          return;
+        }
+      }
+      throw new Error("The render is still running. Refresh this page in a few minutes and check again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Render failed");
+    } finally {
+      setBusy(false);
     }
-    setOutputs(data.outputs || {});
   }
 
   return (
@@ -60,8 +93,8 @@ export default function ExportPage() {
         </p>
         <h2 className="brand-serif mt-2 text-3xl">{projectName}</h2>
         <p className="mt-3 text-[var(--muted)]">
-          Render a final MP4 locally with Remotion. Landscape is 1920×1080,
-          vertical is 1080×1920.
+          Landscape is 1920×1080, vertical is 1080×1920. A full photo set can
+          take several minutes. Keep this page open until the download appears.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -89,10 +122,11 @@ export default function ExportPage() {
           disabled={busy}
           className="mt-8 w-full rounded-xl bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-60"
         >
-          {busy ? "Rendering… this can take a few minutes" : "Render video"}
+          {busy ? statusLabel || "Rendering…" : "Render video"}
         </button>
 
         {error ? <p className="mt-4 text-[var(--danger)]">{error}</p> : null}
+        {warning ? <p className="mt-4 text-[var(--muted)]">{warning}</p> : null}
 
         {Object.keys(outputs).length > 0 && (
           <div className="mt-8 space-y-3">
