@@ -120,3 +120,27 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   return NextResponse.json({ project: serializeProject(project) });
 }
+
+export async function DELETE(req: Request, ctx: Ctx) {
+  const authError = await guardAuth();
+  if (authError) return authError;
+  await ensureDb();
+
+  const { id } = await ctx.params;
+  const projectId = Number(id);
+  const photoId = Number(new URL(req.url).searchParams.get("photoId"));
+  if (!Number.isFinite(photoId)) return jsonError("Photo id is required", 400);
+
+  const photo = await prisma.photo.findFirst({
+    where: { id: photoId, projectId },
+  });
+  if (!photo) return jsonError("Photo not found", 404);
+
+  await prisma.photo.delete({ where: { id: photo.id } });
+
+  const project = await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
+    include: { agent: true, photos: { orderBy: { sequenceOrder: "asc" } } },
+  });
+  return NextResponse.json({ project: serializeProject(project) });
+}

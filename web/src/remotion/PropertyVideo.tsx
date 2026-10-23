@@ -3,41 +3,32 @@ import {
   AbsoluteFill,
   Audio,
   Sequence,
-  Series,
   interpolate,
   useCurrentFrame,
 } from "remotion";
-import {
-  CROSSFADE_SEC,
-  FPS,
-  INTRO_DURATION_SEC,
-  OUTRO_DURATION_SEC,
-} from "../lib/constants";
+import { FPS } from "../lib/constants";
+import { videoTimeline } from "../lib/timeline";
 import { INTRO_COMPONENTS } from "./intros";
 import { OUTRO_COMPONENTS } from "./outros";
 import { PhotoSlide } from "./PhotoSlide";
 import type { PropertyVideoProps } from "./types";
 import { defaultVideoProps } from "./types";
 
-function CrossfadeWrapper({
+function DissolveIn({
   children,
-  durationInFrames,
-  fadeIn = true,
-  fadeOut = true,
+  frames,
 }: {
   children: React.ReactNode;
-  durationInFrames: number;
-  fadeIn?: boolean;
-  fadeOut?: boolean;
+  frames: number;
 }) {
   const frame = useCurrentFrame();
-  const fade = Math.round(CROSSFADE_SEC * FPS);
-  const opacity = interpolate(
-    frame,
-    [0, fade, durationInFrames - fade, durationInFrames],
-    [fadeIn ? 0 : 1, 1, 1, fadeOut ? 0 : 1],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-  );
+  const opacity =
+    frames <= 1
+      ? 1
+      : interpolate(frame, [0, frames - 1], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
   return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
 }
 
@@ -51,26 +42,19 @@ function IntroFadeOut({
   fade: number;
 }) {
   const frame = useCurrentFrame();
-  const fadeStart = Math.max(0, durationInFrames - fade);
-  const opacity = interpolate(
-    frame,
-    [fadeStart, durationInFrames],
-    [1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-  );
+  const last = Math.max(durationInFrames - 1, 1);
+  const fadeStart = Math.max(0, last - fade + 1);
+  if (fadeStart >= last) {
+    return <AbsoluteFill>{children}</AbsoluteFill>;
+  }
+  const opacity = interpolate(frame, [fadeStart, last], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
   return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
 }
 
-function photoSectionFrames(
-  photoCount: number,
-  photoFrames: number,
-  fade: number,
-) {
-  const n = Math.max(photoCount, 1);
-  return n * photoFrames - Math.max(0, n - 1) * fade;
-}
-
-/** Intro Template A right column: top = Front View (best full-house), bottom = Living Room */
+/** Intro right column: top = Front View, bottom = Living Room */
 function pickIntroPhotos(
   photos: { src: string; roomType: string; confidence?: number }[],
 ): string[] {
@@ -83,9 +67,7 @@ function pickIntroPhotos(
       .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
 
   const front =
-    ofType("Front View")[0] ||
-    ofType("Aerial View")[0] ||
-    withSrc[0];
+    ofType("Front View")[0] || ofType("Aerial View")[0] || withSrc[0];
   const living =
     ofType("Living Room")[0] ||
     withSrc.find((p) => p.src !== front.src) ||
@@ -97,12 +79,18 @@ function pickIntroPhotos(
   return [front.src, living.src, ...rest].slice(0, 4);
 }
 
+function timelineInput(props: PropertyVideoProps) {
+  const p = { ...defaultVideoProps, ...props };
+  return {
+    photoCount: p.photos.length,
+    photoDurationSec: p.photoDurationSec,
+    showIntro: p.showIntro,
+    showOutro: p.showOutro,
+  };
+}
+
 export const PropertyVideo: React.FC<PropertyVideoProps> = (props) => {
   const p = { ...defaultVideoProps, ...props };
-  const introFrames = INTRO_DURATION_SEC * FPS;
-  const outroFrames = OUTRO_DURATION_SEC * FPS;
-  const photoFrames = Math.round(p.photoDurationSec * FPS);
-  const fade = Math.round(CROSSFADE_SEC * FPS);
   const photos = useMemo(
     () =>
       p.photos.length
@@ -117,86 +105,100 @@ export const PropertyVideo: React.FC<PropertyVideoProps> = (props) => {
     [p.photos],
   );
 
+  const timeline = videoTimeline({
+    ...timelineInput(p),
+    photoCount: photos.length,
+  });
   const Intro = INTRO_COMPONENTS[p.introTemplate] || INTRO_COMPONENTS.A;
   const Outro = OUTRO_COMPONENTS[p.outroTemplate] || OUTRO_COMPONENTS["1"];
-
   const introPhotoSrcs = useMemo(() => pickIntroPhotos(photos), [photos]);
-
   const firstPhotoSrc = photos[0]?.src || "";
-  const bg = firstPhotoSrc || null;
-
-  // Dissolve intro → first photo; Series length must match photoSectionFrames
-  // (each slide = photoFrames, overlap = fade via offset)
-  const photosStart = introFrames - fade;
-  const photosLength = photoSectionFrames(photos.length, photoFrames, fade);
-  const outroStart = photosStart + photosLength;
-  const totalFrames = outroStart + outroFrames;
+  const premount = Math.round(FPS);
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
-      <Sequence durationInFrames={introFrames}>
-        <IntroFadeOut durationInFrames={introFrames} fade={fade}>
-          <Intro
-            propertyName={p.propertyName}
-            beds={p.beds}
-            baths={p.baths}
-            sqftLabel={p.sqftLabel}
-            priceLabel={p.priceLabel}
-            photos={introPhotoSrcs}
-            bedIcon={p.bedIcon}
-            bathIcon={p.bathIcon}
-            sqftIcon={p.sqftIcon}
-          />
-        </IntroFadeOut>
-      </Sequence>
+      {photos.map((photo, index) => {
+        const dissolve = index === 0 ? 0 : timeline.fade;
+        return (
+          <Sequence
+            key={`${photo.src}-${index}`}
+            from={timeline.photosStart + index * timeline.step}
+            durationInFrames={timeline.photoFrames}
+            premountFor={index === 0 ? 0 : premount}
+          >
+            <DissolveIn frames={dissolve}>
+              {photo.src ? (
+                <PhotoSlide
+                  photo={photo}
+                  zoomIntensity={p.zoomIntensity}
+                  showLabel={p.showRoomLabels}
+                />
+              ) : (
+                <AbsoluteFill style={{ backgroundColor: "#222" }} />
+              )}
+            </DissolveIn>
+          </Sequence>
+        );
+      })}
 
-      <Sequence from={photosStart}>
-        <Series>
-          {photos.map((photo, index) => (
-            <Series.Sequence
-              key={`${photo.src}-${index}`}
-              durationInFrames={photoFrames}
-              offset={index === 0 ? 0 : -fade}
-            >
-              <CrossfadeWrapper
-                durationInFrames={photoFrames}
-                fadeIn
-                fadeOut={index < photos.length - 1}
-              >
-                {photo.src ? (
-                  <PhotoSlide photo={photo} zoomIntensity={p.zoomIntensity} />
-                ) : (
-                  <AbsoluteFill style={{ backgroundColor: "#222" }} />
-                )}
-              </CrossfadeWrapper>
-            </Series.Sequence>
-          ))}
-        </Series>
-      </Sequence>
+      {p.showIntro ? (
+        <Sequence durationInFrames={timeline.introFrames}>
+          <IntroFadeOut
+            durationInFrames={timeline.introFrames}
+            fade={timeline.fade}
+          >
+            <Intro
+              propertyName={p.propertyName}
+              beds={p.beds}
+              baths={p.baths}
+              sqftLabel={p.sqftLabel}
+              priceLabel={p.priceLabel}
+              photos={introPhotoSrcs}
+              bedIcon={p.bedIcon}
+              bathIcon={p.bathIcon}
+              sqftIcon={p.sqftIcon}
+              kicker={p.introKicker}
+            />
+          </IntroFadeOut>
+        </Sequence>
+      ) : null}
 
-      <Sequence from={outroStart} durationInFrames={outroFrames}>
-        <Outro
-          propertyName="Better Homes and Gardens Real Estate"
-          heading={p.heading}
-          agentName={p.agentName}
-          agentPhone={p.agentPhone}
-          agentEmail={p.agentEmail}
-          agentInitials={p.agentInitials}
-          backgroundSrc={bg}
-        />
-      </Sequence>
+      {p.showOutro ? (
+        <Sequence
+          from={timeline.outroStart}
+          durationInFrames={timeline.outroFrames}
+          premountFor={premount}
+        >
+          <DissolveIn frames={timeline.fade}>
+            <Outro
+              propertyName={p.outroBrand}
+              heading={p.outroHeading || p.heading}
+              agentName={p.agentName}
+              agentPhone={p.agentPhone}
+              agentEmail={p.agentEmail}
+              agentInitials={p.agentInitials}
+              backgroundSrc={firstPhotoSrc || null}
+            />
+          </DissolveIn>
+        </Sequence>
+      ) : null}
 
       {p.musicUrl ? (
         <Audio
           src={p.musicUrl}
           volume={(f) => {
-            const fadeOutStart = totalFrames - FPS * 2;
+            const fadeOutStart = timeline.totalFrames - FPS * 2;
             const base = p.musicVolume;
             if (f < fadeOutStart) return base;
-            return interpolate(f, [fadeOutStart, totalFrames], [base, 0], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            });
+            return interpolate(
+              f,
+              [fadeOutStart, timeline.totalFrames],
+              [base, 0],
+              {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              },
+            );
           }}
         />
       ) : null}
@@ -206,14 +208,8 @@ export const PropertyVideo: React.FC<PropertyVideoProps> = (props) => {
 
 export function getCompositionDuration(props: PropertyVideoProps) {
   const p = { ...defaultVideoProps, ...props };
-  const introFrames = INTRO_DURATION_SEC * FPS;
-  const outroFrames = OUTRO_DURATION_SEC * FPS;
-  const photoFrames = Math.round(p.photoDurationSec * FPS);
-  const fade = Math.round(CROSSFADE_SEC * FPS);
-  const photoSection = photoSectionFrames(
-    p.photos.length || 1,
-    photoFrames,
-    fade,
-  );
-  return introFrames + photoSection + outroFrames - fade;
+  return videoTimeline({
+    ...timelineInput(p),
+    photoCount: Math.max(p.photos.length, 1),
+  }).totalFrames;
 }

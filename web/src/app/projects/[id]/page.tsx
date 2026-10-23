@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { TemplatePicker } from "@/components/TemplatePicker";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { ROOM_TYPES } from "@/lib/constants";
-import { formatPrice, formatSqft } from "@/lib/format";
+import { agentInitials, formatPrice, formatSqft } from "@/lib/format";
 import type { PropertyVideoProps } from "@/remotion/types";
 
 type Photo = {
@@ -34,6 +34,12 @@ type Project = {
   musicVolume: number;
   photoDuration: number;
   zoomIntensity: number;
+  introKicker: string;
+  outroHeading: string;
+  outroBrand: string;
+  showIntro: boolean;
+  showOutro: boolean;
+  showRoomLabels: boolean;
   photos: Photo[];
   agent: {
     id: number;
@@ -54,6 +60,23 @@ export default function ReviewPage() {
   const [message, setMessage] = useState("");
   const [musicTracks, setMusicTracks] = useState<string[]>(["None"]);
   const [classifying, setClassifying] = useState(false);
+  const pendingRef = useRef<Record<string, unknown>>({});
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      const body = pendingRef.current;
+      pendingRef.current = {};
+      if (Object.keys(body).length === 0) return;
+      void fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        keepalive: true,
+      });
+    };
+  }, [id]);
 
   const load = useCallback(async () => {
     setLoadError("");
@@ -107,8 +130,8 @@ export default function ReviewPage() {
       agentName: project.agent?.name || "Your Agent",
       agentPhone: project.agent?.phone || "",
       agentEmail: project.agent?.email || "",
-      agentInitials: project.agent?.initials || "AG",
-      heading: "SCHEDULE A SHOWING TODAY",
+      agentInitials: agentInitials(project.agent?.name || "Agent"),
+      heading: project.outroHeading || "SCHEDULE A SHOWING TODAY",
       bedIcon: "/icons/bed.png",
       bathIcon: "/icons/bath.png",
       sqftIcon: "/icons/sqft.png",
@@ -116,20 +139,67 @@ export default function ReviewPage() {
         ? `/api/media/music/${project.musicTrack}`
         : null,
       musicVolume: project.musicVolume,
+      introKicker: project.introKicker ?? "PROPERTY DETAILS",
+      outroHeading: project.outroHeading || "SCHEDULE A SHOWING TODAY",
+      outroBrand:
+        project.outroBrand ?? "Better Homes and Gardens Real Estate",
+      showIntro: project.showIntro !== false,
+      showOutro: project.showOutro !== false,
+      showRoomLabels: project.showRoomLabels !== false,
     };
   }, [project]);
 
-  async function patchProject(patch: Record<string, unknown>) {
-    if (!project) return;
-    setProject({ ...project, ...patch } as Project);
-    setSaving(true);
-    await fetch(`/api/projects/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
+  const persist = useCallback(
+    async (body: Record<string, unknown>) => {
+      setSaving(true);
+      try {
+        const res = await fetch(`/api/projects/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) setMessage("Could not save changes.");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [id],
+  );
+
+  const patchProject = useCallback(
+    async (patch: Record<string, unknown>, delay = 0) => {
+      setProject((prev) => (prev ? ({ ...prev, ...patch } as Project) : prev));
+      if (delay > 0) {
+        pendingRef.current = { ...pendingRef.current, ...patch };
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          const body = pendingRef.current;
+          pendingRef.current = {};
+          void persist(body);
+        }, delay);
+        return;
+      }
+      if (timerRef.current) clearTimeout(timerRef.current);
+      const body = { ...pendingRef.current, ...patch };
+      pendingRef.current = {};
+      await persist(body);
+    },
+    [persist],
+  );
+
+  const mergeServer = useCallback((server: Project) => {
+    setProject((prev) => {
+      if (!prev) return server;
+      const pending = pendingRef.current;
+      return {
+        ...prev,
+        status: server.status,
+        photos: server.photos,
+        ...pending,
+        agent: (pending.agent as Project["agent"]) || prev.agent,
+      };
     });
-    setSaving(false);
-  }
+  }, []);
 
   async function patchPhoto(photoId: number, patch: Record<string, unknown>) {
     setSaving(true);
@@ -139,7 +209,19 @@ export default function ReviewPage() {
       body: JSON.stringify({ photoId, patch }),
     });
     const data = await res.json();
-    if (res.ok) setProject(data.project);
+    if (res.ok) mergeServer(data.project);
+    setSaving(false);
+  }
+
+  async function removePhoto(photoId: number) {
+    if (!window.confirm("Remove this photo from the video?")) return;
+    setSaving(true);
+    const res = await fetch(`/api/projects/${id}/photos?photoId=${photoId}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (res.ok) mergeServer(data.project);
+    else setMessage(data.error || "Could not remove photo.");
     setSaving(false);
   }
 
@@ -161,7 +243,7 @@ export default function ReviewPage() {
       body: JSON.stringify({ order: reordered.map((p) => p.id) }),
     });
     const data = await res.json();
-    if (res.ok) setProject(data.project);
+    if (res.ok) mergeServer(data.project);
     setSaving(false);
   }
 
@@ -180,7 +262,7 @@ export default function ReviewPage() {
       });
       const data = await res.json();
       if (res.ok && data.project) {
-        setProject(data.project);
+        mergeServer(data.project);
         setMessage(
           data.warning || "Rooms classified and photos reordered.",
         );
@@ -226,6 +308,69 @@ export default function ReviewPage() {
   const sortedPhotos = [...project.photos].sort(
     (a, b) => (a.sequenceOrder ?? 0) - (b.sequenceOrder ?? 0),
   );
+  const introOn = project.showIntro !== false;
+  const outroOn = project.showOutro !== false;
+  const labelsOn = project.showRoomLabels !== false;
+  const allOn = introOn && outroOn && labelsOn;
+  const allOff = !introOn && !outroOn && !labelsOn;
+
+  function setAllVisible(show: boolean) {
+    patchProject({
+      showIntro: show,
+      showOutro: show,
+      showRoomLabels: show,
+    });
+  }
+  const volumePct = Math.round(
+    Math.min(1, Math.max(0, project.musicVolume ?? 0.5)) * 100,
+  );
+  const visiblePhotos = sortedPhotos.filter((p) => p.isVisible);
+  const templatePreview = {
+    propertyName: project.name,
+    beds: project.beds ?? 0,
+    baths: project.baths ?? 0,
+    sqftLabel: formatSqft(project.sqft),
+    priceLabel: formatPrice(project.listingPrice),
+    photos: visiblePhotos.map((p) => p.url),
+    photoItems: visiblePhotos.map((p) => ({
+      src: p.url,
+      roomType: p.roomType || "Other",
+    })),
+    agentName: project.agent?.name,
+    agentPhone: project.agent?.phone || undefined,
+    agentEmail: project.agent?.email || undefined,
+    agentInitials: agentInitials(project.agent?.name || "Agent"),
+    kicker: project.introKicker ?? "PROPERTY DETAILS",
+    heading: project.outroHeading || "SCHEDULE A SHOWING TODAY",
+    brand: project.outroBrand ?? "Better Homes and Gardens Real Estate",
+  };
+
+  const listing = project;
+  function editAgent(partial: {
+    name?: string;
+    phone?: string | null;
+    email?: string | null;
+  }) {
+    const name = partial.name ?? listing.agent?.name ?? "";
+    patchProject(
+      {
+        agent: {
+          id: listing.agent?.id ?? 0,
+          name,
+          phone:
+            partial.phone !== undefined
+              ? partial.phone
+              : (listing.agent?.phone ?? ""),
+          email:
+            partial.email !== undefined
+              ? partial.email
+              : (listing.agent?.email ?? ""),
+          initials: agentInitials(name || "Agent"),
+        },
+      },
+      400,
+    );
+  }
 
   return (
     <AppShell
@@ -267,7 +412,254 @@ export default function ReviewPage() {
 
         <div className="space-y-6">
           <section className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-5">
-            <h2 className="font-semibold">Video settings</h2>
+            <h2 className="font-semibold">Show or hide</h2>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Show or hide the intro, outro, and room labels on their own, or all three together.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`chip text-xs ${allOn ? "chip-active" : ""}`}
+                onClick={() => setAllVisible(true)}
+              >
+                Show all
+              </button>
+              <button
+                type="button"
+                className={`chip text-xs ${allOff ? "chip-active" : ""}`}
+                onClick={() => setAllVisible(false)}
+              >
+                Hide all
+              </button>
+            </div>
+            <div className="mt-4 space-y-3">
+              {(
+                [
+                  ["Intro", introOn, { showIntro: true }, { showIntro: false }],
+                  ["Outro", outroOn, { showOutro: true }, { showOutro: false }],
+                  [
+                    "Room labels",
+                    labelsOn,
+                    { showRoomLabels: true },
+                    { showRoomLabels: false },
+                  ],
+                ] as const
+              ).map(([label, on, showPatch, hidePatch]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white px-3 py-2"
+                >
+                  <span className="text-sm font-medium">{label}</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className={`chip text-xs ${on ? "chip-active" : ""}`}
+                      onClick={() => patchProject({ ...showPatch })}
+                    >
+                      Show
+                    </button>
+                    <button
+                      type="button"
+                      className={`chip text-xs ${on ? "" : "chip-active"}`}
+                      onClick={() => patchProject({ ...hidePatch })}
+                    >
+                      Hide
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-semibold">Intro text</h2>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={`chip text-xs ${introOn ? "chip-active" : ""}`}
+                  onClick={() => patchProject({ showIntro: true })}
+                >
+                  Show
+                </button>
+                <button
+                  type="button"
+                  className={`chip text-xs ${introOn ? "" : "chip-active"}`}
+                  onClick={() => patchProject({ showIntro: false })}
+                >
+                  Hide
+                </button>
+              </div>
+            </div>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Address, price, and the small label on the opening card.
+            </p>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm">Address / title</span>
+              <input
+                className="field"
+                value={project.name}
+                onChange={(e) => patchProject({ name: e.target.value }, 400)}
+              />
+            </label>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm">Small label</span>
+              <input
+                className="field"
+                value={project.introKicker ?? "PROPERTY DETAILS"}
+                onChange={(e) =>
+                  patchProject({ introKicker: e.target.value }, 400)
+                }
+              />
+            </label>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <label>
+                <span className="mb-2 block text-sm">Beds</span>
+                <input
+                  className="field"
+                  type="number"
+                  min={0}
+                  value={project.beds ?? 0}
+                  onChange={(e) =>
+                    patchProject({ beds: Number(e.target.value) }, 400)
+                  }
+                />
+              </label>
+              <label>
+                <span className="mb-2 block text-sm">Baths</span>
+                <input
+                  className="field"
+                  type="number"
+                  min={0}
+                  value={project.baths ?? 0}
+                  onChange={(e) =>
+                    patchProject({ baths: Number(e.target.value) }, 400)
+                  }
+                />
+              </label>
+              <label>
+                <span className="mb-2 block text-sm">Sq ft</span>
+                <input
+                  className="field"
+                  type="number"
+                  min={0}
+                  value={project.sqft ?? 0}
+                  onChange={(e) =>
+                    patchProject({ sqft: Number(e.target.value) }, 400)
+                  }
+                />
+              </label>
+              <label>
+                <span className="mb-2 block text-sm">List price</span>
+                <input
+                  className="field"
+                  type="number"
+                  min={0}
+                  value={project.listingPrice ?? 0}
+                  onChange={(e) =>
+                    patchProject({ listingPrice: Number(e.target.value) }, 400)
+                  }
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-semibold">Outro text</h2>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={`chip text-xs ${outroOn ? "chip-active" : ""}`}
+                  onClick={() => patchProject({ showOutro: true })}
+                >
+                  Show
+                </button>
+                <button
+                  type="button"
+                  className={`chip text-xs ${outroOn ? "" : "chip-active"}`}
+                  onClick={() => patchProject({ showOutro: false })}
+                >
+                  Hide
+                </button>
+              </div>
+            </div>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Headline and contact card at the end of the video.
+            </p>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm">Headline</span>
+              <input
+                className="field"
+                value={project.outroHeading || "SCHEDULE A SHOWING TODAY"}
+                onChange={(e) =>
+                  patchProject({ outroHeading: e.target.value }, 400)
+                }
+              />
+            </label>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm">Brokerage or second line</span>
+              <input
+                className="field"
+                value={
+                  project.outroBrand ?? "Better Homes and Gardens Real Estate"
+                }
+                onChange={(e) =>
+                  patchProject({ outroBrand: e.target.value }, 400)
+                }
+              />
+            </label>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm">Agent name</span>
+              <input
+                className="field"
+                value={project.agent?.name || ""}
+                onChange={(e) => editAgent({ name: e.target.value })}
+              />
+            </label>
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              <label>
+                <span className="mb-2 block text-sm">Phone</span>
+                <input
+                  className="field"
+                  value={project.agent?.phone || ""}
+                  onChange={(e) => editAgent({ phone: e.target.value })}
+                />
+              </label>
+              <label>
+                <span className="mb-2 block text-sm">Email</span>
+                <input
+                  className="field"
+                  value={project.agent?.email || ""}
+                  onChange={(e) => editAgent({ email: e.target.value })}
+                />
+              </label>
+            </div>
+            <p className="mt-3 text-xs text-[var(--muted)]">
+              Agent contact is shared with every video that uses this agent.
+            </p>
+          </section>
+
+          <section className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-5">
+            <h2 className="font-semibold">Video options</h2>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Turn pieces on or off, or change timing, zoom, and music. The preview updates as you edit.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`chip text-xs ${project.musicTrack ? "chip-active" : ""}`}
+                onClick={() =>
+                  patchProject({
+                    musicTrack: project.musicTrack
+                      ? null
+                      : musicTracks.find((t) => t !== "None") || null,
+                  })
+                }
+              >
+                Music {project.musicTrack ? "on" : "off"}
+              </button>
+            </div>
             <label className="mt-4 block">
               <span className="mb-2 block text-sm">Photo duration ({project.photoDuration}s)</span>
               <input
@@ -277,23 +669,23 @@ export default function ReviewPage() {
                 step={0.5}
                 value={project.photoDuration}
                 onChange={(e) =>
-                  patchProject({ photoDuration: Number(e.target.value) })
+                  patchProject({ photoDuration: Number(e.target.value) }, 200)
                 }
                 className="w-full"
               />
             </label>
             <label className="mt-4 block">
               <span className="mb-2 block text-sm">
-                Zoom intensity ({project.zoomIntensity})
+                Zoom ({project.zoomIntensity <= 0 ? "off" : project.zoomIntensity})
               </span>
               <input
                 type="range"
-                min={1}
+                min={0}
                 max={3}
                 step={0.1}
                 value={project.zoomIntensity}
                 onChange={(e) =>
-                  patchProject({ zoomIntensity: Number(e.target.value) })
+                  patchProject({ zoomIntensity: Number(e.target.value) }, 200)
                 }
                 className="w-full"
               />
@@ -312,10 +704,27 @@ export default function ReviewPage() {
               >
                 {musicTracks.map((track) => (
                   <option key={track} value={track}>
-                    {track}
+                    {track === "None" ? "None — remove music" : track}
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm">Music volume ({volumePct}%)</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={volumePct}
+                disabled={!project.musicTrack}
+                onChange={(e) =>
+                  patchProject(
+                    { musicVolume: Number(e.target.value) / 100 },
+                    200,
+                  )
+                }
+                className="w-full disabled:opacity-40"
+              />
             </label>
           </section>
 
@@ -385,6 +794,13 @@ export default function ReviewPage() {
                       >
                         Down
                       </button>
+                      <button
+                        type="button"
+                        className="chip text-xs"
+                        onClick={() => removePhoto(photo.id)}
+                      >
+                        Remove
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -396,58 +812,52 @@ export default function ReviewPage() {
 
       <div className="mt-10 grid gap-8 lg:grid-cols-2">
         <section className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-6">
-          <h2 className="text-lg font-semibold">Intro template</h2>
-          <div className="mt-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Intro template</h2>
+            <button
+              type="button"
+              className={`chip text-xs ${introOn ? "chip-active" : ""}`}
+              onClick={() => patchProject({ showIntro: !introOn })}
+            >
+              {introOn ? "Hide intro" : "Show intro"}
+            </button>
+          </div>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            {introOn
+              ? "Pick a different opening. Text edits above show up here."
+              : "Intro is hidden. Show it to use a template."}
+          </p>
+          <div className={`mt-4 ${introOn ? "" : "pointer-events-none opacity-40"}`}>
             <TemplatePicker
               kind="intro"
               value={project.introTemplate}
               onChange={(introTemplate) => patchProject({ introTemplate })}
-              preview={{
-                propertyName: project.name,
-                beds: project.beds ?? 0,
-                baths: project.baths ?? 0,
-                sqftLabel: formatSqft(project.sqft),
-                priceLabel: formatPrice(project.listingPrice),
-                photos: sortedPhotos.filter((p) => p.isVisible).map((p) => p.url),
-                photoItems: sortedPhotos
-                  .filter((p) => p.isVisible)
-                  .map((p) => ({
-                    src: p.url,
-                    roomType: p.roomType || "Other",
-                  })),
-                agentName: project.agent?.name,
-                agentPhone: project.agent?.phone || undefined,
-                agentEmail: project.agent?.email || undefined,
-                agentInitials: project.agent?.initials,
-              }}
+              preview={templatePreview}
             />
           </div>
         </section>
         <section className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-6">
-          <h2 className="text-lg font-semibold">Outro template</h2>
-          <div className="mt-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Outro template</h2>
+            <button
+              type="button"
+              className={`chip text-xs ${outroOn ? "chip-active" : ""}`}
+              onClick={() => patchProject({ showOutro: !outroOn })}
+            >
+              {outroOn ? "Hide outro" : "Show outro"}
+            </button>
+          </div>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            {outroOn
+              ? "Pick a different ending. Headline and contact edits show up here."
+              : "Outro is hidden. Show it to use a template."}
+          </p>
+          <div className={`mt-4 ${outroOn ? "" : "pointer-events-none opacity-40"}`}>
             <TemplatePicker
               kind="outro"
               value={project.outroTemplate}
               onChange={(outroTemplate) => patchProject({ outroTemplate })}
-              preview={{
-                propertyName: project.name,
-                beds: project.beds ?? 0,
-                baths: project.baths ?? 0,
-                sqftLabel: formatSqft(project.sqft),
-                priceLabel: formatPrice(project.listingPrice),
-                photos: sortedPhotos.filter((p) => p.isVisible).map((p) => p.url),
-                photoItems: sortedPhotos
-                  .filter((p) => p.isVisible)
-                  .map((p) => ({
-                    src: p.url,
-                    roomType: p.roomType || "Other",
-                  })),
-                agentName: project.agent?.name,
-                agentPhone: project.agent?.phone || undefined,
-                agentEmail: project.agent?.email || undefined,
-                agentInitials: project.agent?.initials,
-              }}
+              preview={templatePreview}
             />
           </div>
         </section>

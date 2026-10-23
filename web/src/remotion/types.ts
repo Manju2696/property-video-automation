@@ -26,6 +26,12 @@ export type PropertyVideoProps = {
   sqftIcon: string;
   musicUrl: string | null;
   musicVolume: number;
+  introKicker: string;
+  outroHeading: string;
+  outroBrand: string;
+  showIntro: boolean;
+  showOutro: boolean;
+  showRoomLabels: boolean;
 };
 
 export type IntroProps = {
@@ -38,6 +44,7 @@ export type IntroProps = {
   bedIcon: string;
   bathIcon: string;
   sqftIcon: string;
+  kicker?: string;
 };
 
 export type OutroProps = {
@@ -71,4 +78,10 @@ export const defaultVideoProps: PropertyVideoProps = {
   sqftIcon: "/icons/sqft.png",
   musicUrl: null,
   musicVolume: 0.5,
+  introKicker: "PROPERTY DETAILS",
+  outroHeading: "SCHEDULE A SHOWING TODAY",
+  outroBrand: "Better Homes and Gardens Real Estate",
+  showIntro: true,
+  showOutro: true,
+  showRoomLabels: true,
 };

@@ -21,6 +21,9 @@ export type TemplatePickerPreview = {
   agentPhone?: string;
   agentEmail?: string;
   agentInitials?: string;
+  kicker?: string;
+  heading?: string;
+  brand?: string;
 };
 
 function pickIntroPhotoUrls(
@@ -83,11 +86,12 @@ export function TemplatePicker({
     bedIcon: "/icons/bed.png",
     bathIcon: "/icons/bath.png",
     sqftIcon: "/icons/sqft.png",
+    kicker: preview?.kicker ?? "PROPERTY DETAILS",
   };
 
   const outroBase = {
-    propertyName: "Better Homes and Gardens Real Estate",
-    heading: "SCHEDULE A SHOWING TODAY",
+    propertyName: preview?.brand || "Better Homes and Gardens Real Estate",
+    heading: preview?.heading || "SCHEDULE A SHOWING TODAY",
     agentName: preview?.agentName || "Alex Morgan",
     agentPhone: preview?.agentPhone || "(555) 010-2000",
     agentEmail: preview?.agentEmail || "alex@realty.example",

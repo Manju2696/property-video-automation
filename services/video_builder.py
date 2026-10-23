@@ -304,34 +304,37 @@ def _build_photo_clip(
     crf: int,
     preset: str,
 ) -> None:
-    frames = max(1, int(duration * FPS))
-    zoom_range = max(max_zoom - 1.0, 0.01)
-    zoom_step_value = f"{zoom_range / frames:.6f}"
-    max_zoom_value = f"{max_zoom:.4f}"
-
-    if zoom_direction == "out":
-        zoom_expr = (
-            f"if(lte(zoom,1.0),{max_zoom_value},max(1.001,zoom-{zoom_step_value}))"
-        )
+    # `on` keeps zoom frame-accurate. Incremental `zoom` plus `-t` skips frames.
+    frames = max(2, int(round(duration * FPS)))
+    zoom_range = max(max_zoom - 1.0, 0.0)
+    span = max(frames - 1, 1)
+    if zoom_range < 0.001:
+        zoom_expr = "1.001"
+    elif zoom_direction == "out":
+        zoom_expr = f"{max_zoom:.6f}-({zoom_range:.6f})*on/{span}"
     else:
-        zoom_expr = f"min(zoom+{zoom_step_value},{max_zoom_value})"
+        zoom_expr = f"1.001+({zoom_range:.6f})*on/{span}"
 
     zoompan = (
-        f"scale=8000:-1,zoompan=z='{zoom_expr}':"
+        f"scale=8000:-1:flags=lanczos,zoompan=z='{zoom_expr}':"
         f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
-        f"d={frames}:s={width}x{height}:fps={FPS}"
+        f"d={frames}:s={width}x{height}:fps={FPS},fps={FPS}"
     )
 
     _run_ffmpeg(
         [
             "-loop",
             "1",
+            "-framerate",
+            str(FPS),
             "-i",
             str(photo_path),
             "-vf",
             zoompan,
-            "-t",
-            str(duration),
+            "-frames:v",
+            str(frames),
+            "-r",
+            str(FPS),
             *_encode_args(crf, preset),
             str(output_path),
         ],
@@ -408,6 +411,8 @@ def _concat_with_crossfade(
             filter_complex,
             "-map",
             "[vout]",
+            "-r",
+            str(FPS),
             *_encode_args(crf, preset),
             str(output_path),
         ],

@@ -26,6 +26,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   await ensureDb();
 
   const { id } = await ctx.params;
+  const projectId = Number(id);
   const body = await req.json().catch(() => ({}));
 
   const data: Record<string, unknown> = {};
@@ -44,15 +45,48 @@ export async function PATCH(req: Request, ctx: Ctx) {
     "photoDuration",
     "zoomIntensity",
     "agentId",
+    "introKicker",
+    "outroHeading",
+    "outroBrand",
+    "showIntro",
+    "showOutro",
+    "showRoomLabels",
   ] as const;
 
   for (const key of fields) {
     if (body[key] !== undefined) data[key] = body[key];
   }
-  if (data.musicTrack === "None") data.musicTrack = null;
+  if (data.musicTrack === "None" || data.musicTrack === "") data.musicTrack = null;
+
+  if (body.agent && typeof body.agent === "object") {
+    const agentBody = body.agent as {
+      name?: string;
+      phone?: string | null;
+      email?: string | null;
+    };
+    const agentData = {
+      name: String(agentBody.name || "").trim() || "Your Agent",
+      phone: agentBody.phone ? String(agentBody.phone).trim() : null,
+      email: agentBody.email ? String(agentBody.email).trim() : null,
+    };
+    const existing = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { agentId: true },
+    });
+    if (!existing) return jsonError("Project not found", 404);
+    if (existing.agentId) {
+      await prisma.agent.update({
+        where: { id: existing.agentId },
+        data: agentData,
+      });
+    } else {
+      const agent = await prisma.agent.create({ data: agentData });
+      data.agentId = agent.id;
+    }
+  }
 
   const project = await prisma.project.update({
-    where: { id: Number(id) },
+    where: { id: projectId },
     data,
     include: { agent: true, photos: { orderBy: { sequenceOrder: "asc" } } },
   });

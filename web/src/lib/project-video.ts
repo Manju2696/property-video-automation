@@ -2,12 +2,7 @@ import type { Agent, Photo, Project } from "@prisma/client";
 import path from "path";
 import { pathToFileURL } from "url";
 import type { PropertyVideoProps } from "@/remotion/types";
-import {
-  CROSSFADE_SEC,
-  FPS,
-  INTRO_DURATION_SEC,
-  OUTRO_DURATION_SEC,
-} from "./constants";
+import { videoTimeline } from "./timeline";
 import { agentInitials, formatPrice, formatSqft } from "./format";
 import { absoluteDataPath, mediaUrl } from "./paths";
 
@@ -110,33 +105,33 @@ export function buildVideoProps(
     introTemplate: project.introTemplate || "A",
     outroTemplate: project.outroTemplate || "1",
     photoDurationSec: project.photoDuration || 4,
-    zoomIntensity: project.zoomIntensity || 1.2,
+    zoomIntensity: project.zoomIntensity ?? 1.2,
     photos: photoProps,
     agentName: project.agent?.name || "Your Agent",
     agentPhone: project.agent?.phone || "",
     agentEmail: project.agent?.email || "",
     agentInitials: agentInitials(project.agent?.name || "Agent"),
-    heading: "SCHEDULE A SHOWING TODAY",
+    heading: project.outroHeading || "SCHEDULE A SHOWING TODAY",
     bedIcon: publicAssetUrl("icons/bed.png", absolute, options.assetOrigin),
     bathIcon: publicAssetUrl("icons/bath.png", absolute, options.assetOrigin),
     sqftIcon: publicAssetUrl("icons/sqft.png", absolute, options.assetOrigin),
     musicUrl,
     musicVolume: project.musicVolume ?? 0.5,
+    introKicker: project.introKicker ?? "PROPERTY DETAILS",
+    outroHeading: project.outroHeading || "SCHEDULE A SHOWING TODAY",
+    outroBrand:
+      project.outroBrand ?? "Better Homes and Gardens Real Estate",
+    showIntro: project.showIntro,
+    showOutro: project.showOutro,
+    showRoomLabels: project.showRoomLabels,
   };
 }
 
 export function calcDurationInFrames(props: PropertyVideoProps) {
-  const intro = INTRO_DURATION_SEC * FPS;
-  const outro = OUTRO_DURATION_SEC * FPS;
-  const fade = Math.round(CROSSFADE_SEC * FPS);
-  const n = Math.max(props.photos.length, 1);
-  const photoFrames = Math.round(props.photoDurationSec * FPS) * n;
-  const fades = Math.max(0, n - 1) * fade;
-  const photoSection = photoFrames - fades;
-  return (
-    intro +
-    Math.max(photoSection, Math.round(props.photoDurationSec * FPS)) +
-    outro -
-    fade
-  );
+  return videoTimeline({
+    photoCount: props.photos.length,
+    photoDurationSec: props.photoDurationSec,
+    showIntro: props.showIntro,
+    showOutro: props.showOutro,
+  }).totalFrames;
 }

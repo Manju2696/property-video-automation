@@ -35,6 +35,12 @@ model Project {
   musicVolume    Float    @default(0.5)
   photoDuration  Float    @default(4.0)
   zoomIntensity  Float    @default(1.2)
+  introKicker    String   @default("PROPERTY DETAILS")
+  outroHeading   String   @default("SCHEDULE A SHOWING TODAY")
+  outroBrand     String   @default("Better Homes and Gardens Real Estate")
+  showIntro      Boolean  @default(true)
+  showOutro      Boolean  @default(true)
+  showRoomLabels Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   photos         Photo[]

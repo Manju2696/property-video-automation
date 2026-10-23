@@ -43,11 +43,33 @@ export function ensureDb() {
           "musicVolume" REAL NOT NULL DEFAULT 0.5,
           "photoDuration" REAL NOT NULL DEFAULT 4.0,
           "zoomIntensity" REAL NOT NULL DEFAULT 1.2,
+          "introKicker" TEXT NOT NULL DEFAULT 'PROPERTY DETAILS',
+          "outroHeading" TEXT NOT NULL DEFAULT 'SCHEDULE A SHOWING TODAY',
+          "outroBrand" TEXT NOT NULL DEFAULT 'Better Homes and Gardens Real Estate',
+          "showIntro" BOOLEAN NOT NULL DEFAULT 1,
+          "showOutro" BOOLEAN NOT NULL DEFAULT 1,
+          "showRoomLabels" BOOLEAN NOT NULL DEFAULT 1,
           "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" DATETIME NOT NULL,
           CONSTRAINT "Project_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent" ("id") ON DELETE SET NULL ON UPDATE CASCADE
         );
       `);
+      const alters = [
+        `ALTER TABLE "Project" ADD COLUMN "introKicker" TEXT NOT NULL DEFAULT 'PROPERTY DETAILS'`,
+        `ALTER TABLE "Project" ADD COLUMN "outroHeading" TEXT NOT NULL DEFAULT 'SCHEDULE A SHOWING TODAY'`,
+        `ALTER TABLE "Project" ADD COLUMN "outroBrand" TEXT NOT NULL DEFAULT 'Better Homes and Gardens Real Estate'`,
+        `ALTER TABLE "Project" ADD COLUMN "showIntro" BOOLEAN NOT NULL DEFAULT 1`,
+        `ALTER TABLE "Project" ADD COLUMN "showOutro" BOOLEAN NOT NULL DEFAULT 1`,
+        `ALTER TABLE "Project" ADD COLUMN "showRoomLabels" BOOLEAN NOT NULL DEFAULT 1`,
+      ];
+      for (const sql of alters) {
+        try {
+          await prisma.$executeRawUnsafe(sql);
+        } catch {
+          // Column already exists on databases created before this change.
+        }
+      }
+
       await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "Photo" (
           "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

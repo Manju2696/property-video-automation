@@ -106,7 +106,7 @@ export const TemplateA: React.FC<IntroProps> = (p) => {
             marginTop: 56,
           }}
         >
-          PROPERTY DETAILS
+          {p.kicker ?? "PROPERTY DETAILS"}
         </div>
         <div style={{ ...icons, display: "flex", gap: 56, marginTop: 32 }}>
           {stats.map((s) => (
@@ -275,7 +275,7 @@ export const TemplateC: React.FC<IntroProps> = (p) => {
       {p.photos[0] && <Img src={p.photos[0]} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: bg.opacity }} />}
       <AbsoluteFill style={{ background: "linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 40%, transparent 75%)" }} />
       <div style={{ position: "absolute", left: 100, top: "50%", transform: "translateY(-50%)", maxWidth: 750 }}>
-        <div style={{ ...e0, fontSize: 16, color: GOLD, letterSpacing: 5 }}>EXCLUSIVE LISTING</div>
+        <div style={{ ...e0, fontSize: 16, color: GOLD, letterSpacing: 5 }}>{p.kicker ?? "PROPERTY DETAILS"}</div>
         <div style={{ ...e1, marginTop: 14, fontSize: 48, fontWeight: 700, color: "#fff", lineHeight: 1.15 }}>{p.propertyName}</div>
         <div style={{ height: 3, backgroundColor: GOLD, margin: "24px 0", width: line.width }} />
         <div style={{ ...e3, display: "flex", gap: 28 }}>
@@ -309,7 +309,7 @@ export const TemplateD: React.FC<IntroProps> = (p) => {
   return (
     <AbsoluteFill style={{ backgroundColor: "#1a1a1a", fontFamily: FONT, display: "flex" }}>
       <div style={{ width: 1060, padding: "80px 90px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ ...e0, fontSize: 14, color: GOLD, letterSpacing: 5 }}>FOR SALE</div>
+        <div style={{ ...e0, fontSize: 14, color: GOLD, letterSpacing: 5 }}>{p.kicker ?? "PROPERTY DETAILS"}</div>
         <div style={{ ...e1, marginTop: 16, fontSize: 46, fontWeight: 700, color: "#fff", lineHeight: 1.15 }}>{p.propertyName}</div>
         <div style={{ height: 2, backgroundColor: GOLD, margin: "30px 0", width: line.width }} />
         <div style={{ ...e3, display: "flex", gap: 18 }}>
@@ -352,7 +352,7 @@ export const TemplateE: React.FC<IntroProps> = (p) => {
         </div>
       </div>
       <div style={{ width: 800, padding: "80px 60px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ ...e1, fontFamily: SERIF, fontSize: 13, color: "#999", letterSpacing: 4 }}>PRESENTED BY REALTY GROUP</div>
+        <div style={{ ...e1, fontFamily: SERIF, fontSize: 13, color: "#999", letterSpacing: 4 }}>{p.kicker ?? "PROPERTY DETAILS"}</div>
         <div style={{ ...e2, marginTop: 16, fontFamily: SERIF, fontSize: 40, fontWeight: 700, color: INK, lineHeight: 1.2 }}>{p.propertyName}</div>
         <div style={{ height: 2, backgroundColor: INK, margin: "24px 0", width: line.width }} />
         <div style={{ ...e4, display: "flex", gap: 24 }}>
@@ -500,7 +500,7 @@ export const TemplateI: React.FC<IntroProps> = (p) => {
     <AbsoluteFill style={{ backgroundColor: "#000", fontFamily: FONT, display: "flex" }}>
       <div style={{ width: strip.width, backgroundColor: GOLD, flexShrink: 0 }} />
       <div style={{ width: 920, backgroundColor: "#1a1a1a", padding: "80px 70px", display: "flex", flexDirection: "column", justifyContent: "center", flexShrink: 0 }}>
-        <div style={{ ...e0, fontSize: 14, color: GOLD, letterSpacing: 4 }}>PROPERTY TOUR</div>
+        <div style={{ ...e0, fontSize: 14, color: GOLD, letterSpacing: 4 }}>{p.kicker ?? "PROPERTY DETAILS"}</div>
         <div style={{ ...e1, marginTop: 14, fontSize: 44, fontWeight: 700, color: "#fff", lineHeight: 1.15 }}>{p.propertyName}</div>
         <div style={{ ...e2, marginTop: 24, display: "flex", flexDirection: "column", gap: 14 }}>
           {rows.map((r) => (

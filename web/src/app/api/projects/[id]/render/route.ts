@@ -94,6 +94,9 @@ export async function POST(req: Request, ctx: Ctx) {
         outputLocation: outPath,
         inputProps,
         crf: 18,
+        imageFormat: "jpeg",
+        jpegQuality: 90,
+        x264Preset: "medium",
       });
 
       outputs[f] = `/api/media/exports/${projectId}/${outName}`;
