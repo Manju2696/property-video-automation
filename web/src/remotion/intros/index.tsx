@@ -44,6 +44,16 @@ function PhotoOrPlaceholder({
   return <div style={{ width: "100%", height: "100%", background: "#ccc", ...style }} />;
 }
 
+type StatKey = "beds" | "baths" | "sqft";
+
+function introStats<T extends { key: StatKey }>(p: IntroProps, items: T[]) {
+  return items.filter((item) => {
+    if (item.key === "beds") return p.showBeds !== false;
+    if (item.key === "baths") return p.showBaths !== false;
+    return p.showSqft !== false;
+  });
+}
+
 export const TemplateA: React.FC<IntroProps> = (p) => {
   const photo1 = useSlideUp(0, 800, 120);
   const photo2 = useSlideUp(200, 800, 120);
@@ -51,11 +61,11 @@ export const TemplateA: React.FC<IntroProps> = (p) => {
   const sub = useSlideUp(1200, 700);
   const icons = useSlideUp(1400, 700);
   const price = useSlideUp(2200, 700);
-  const stats = [
-    { icon: p.bedIcon, label: `${p.beds} BEDS` },
-    { icon: p.bathIcon, label: `${p.baths} BATHS` },
-    { icon: p.sqftIcon, label: `${p.sqftLabel || "—"} SQ FT` },
-  ];
+  const stats = introStats(p, [
+    { key: "beds", icon: p.bedIcon, label: `${p.beds} BEDS` },
+    { key: "baths", icon: p.bathIcon, label: `${p.baths} BATHS` },
+    { key: "sqft", icon: p.sqftIcon, label: `${p.sqftLabel || "—"} SQ FT` },
+  ]);
   const photoTop = p.photos[0] || "";
   const photoBottom = p.photos[1] || p.photos[0] || "";
 
@@ -84,30 +94,34 @@ export const TemplateA: React.FC<IntroProps> = (p) => {
           flexShrink: 0,
         }}
       >
-        <div
-          style={{
-            ...addr,
-            fontWeight: 700,
-            fontSize: 56,
-            color: INK,
-            lineHeight: 1.15,
-            maxWidth: 820,
-          }}
-        >
-          {p.propertyName}
-        </div>
-        <div
-          style={{
-            ...sub,
-            fontSize: 18,
-            color: "#aaa",
-            letterSpacing: 5,
-            fontWeight: 400,
-            marginTop: 56,
-          }}
-        >
-          {p.kicker ?? "PROPERTY DETAILS"}
-        </div>
+        {p.showAddress !== false ? (
+          <div
+            style={{
+              ...addr,
+              fontWeight: 700,
+              fontSize: 56,
+              color: INK,
+              lineHeight: 1.15,
+              maxWidth: 820,
+            }}
+          >
+            {p.propertyName}
+          </div>
+        ) : null}
+        {p.showKicker !== false ? (
+          <div
+            style={{
+              ...sub,
+              fontSize: 18,
+              color: "#aaa",
+              letterSpacing: 5,
+              fontWeight: 400,
+              marginTop: 56,
+            }}
+          >
+            {p.kicker ?? "PROPERTY DETAILS"}
+          </div>
+        ) : null}
         <div style={{ ...icons, display: "flex", gap: 56, marginTop: 32 }}>
           {stats.map((s) => (
             <div key={s.label} style={{ textAlign: "center" }}>
@@ -139,29 +153,31 @@ export const TemplateA: React.FC<IntroProps> = (p) => {
             </div>
           ))}
         </div>
-        <div
-          style={{
-            ...price,
-            marginTop: 56,
-            display: "flex",
-            gap: 16,
-            alignItems: "baseline",
-          }}
-        >
-          <span
+        {p.showPrice !== false ? (
+          <div
             style={{
-              fontWeight: 700,
-              fontSize: 22,
-              color: INK,
-              letterSpacing: 1.5,
+              ...price,
+              marginTop: 56,
+              display: "flex",
+              gap: 16,
+              alignItems: "baseline",
             }}
           >
-            LIST PRICE:
-          </span>
-          <span style={{ fontWeight: 600, fontSize: 54, color: INK }}>
-            {p.priceLabel}
-          </span>
-        </div>
+            <span
+              style={{
+                fontWeight: 700,
+                fontSize: 22,
+                color: INK,
+                letterSpacing: 1.5,
+              }}
+            >
+              LIST PRICE:
+            </span>
+            <span style={{ fontWeight: 600, fontSize: 54, color: INK }}>
+              {p.priceLabel}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {/* Right: two photos stacked up / down — slide up into place */}
@@ -225,18 +241,18 @@ export const TemplateB: React.FC<IntroProps> = (p) => {
   const e2 = useSlideUp(1400, 700);
   const e3 = useSlideUp(2200, 700);
   const e4 = useFadeIn(2600, 500);
-  const stats = [
-    { icon: p.bedIcon, value: p.beds, label: "BEDS" },
-    { icon: p.bathIcon, value: p.baths, label: "BATHS" },
-    { icon: p.sqftIcon, value: p.sqftLabel || "—", label: "SQ FT" },
-  ];
+  const stats = introStats(p, [
+    { key: "beds", icon: p.bedIcon, value: p.beds, label: "BEDS" },
+    { key: "baths", icon: p.bathIcon, value: p.baths, label: "BATHS" },
+    { key: "sqft", icon: p.sqftIcon, value: p.sqftLabel || "—", label: "SQ FT" },
+  ]);
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", fontFamily: FONT }}>
       {p.photos[0] && <Img src={p.photos[0]} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: bg.opacity }} />}
       <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)" }} />
       <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
         <div style={{ ...e0, width: 60, height: 3, backgroundColor: GOLD }} />
-        <div style={{ ...e1, marginTop: 24, fontSize: 48, fontWeight: 700, color: "#fff", letterSpacing: 2 }}>{p.propertyName}</div>
+        {p.showAddress !== false ? <div style={{ ...e1, marginTop: 24, fontSize: 48, fontWeight: 700, color: "#fff", letterSpacing: 2 }}>{p.propertyName}</div> : null}
         <div style={{ ...e2, display: "flex", gap: 36, marginTop: 30, alignItems: "center" }}>
           {stats.map((s, i) => (
             <React.Fragment key={s.label}>
@@ -251,7 +267,7 @@ export const TemplateB: React.FC<IntroProps> = (p) => {
             </React.Fragment>
           ))}
         </div>
-        <div style={{ ...e3, marginTop: 30, fontSize: 46, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div>
+        {p.showPrice !== false ? <div style={{ ...e3, marginTop: 30, fontSize: 46, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div> : null}
         <div style={{ ...e4, width: 60, height: 3, backgroundColor: GOLD, marginTop: 24 }} />
       </AbsoluteFill>
     </AbsoluteFill>
@@ -265,18 +281,18 @@ export const TemplateC: React.FC<IntroProps> = (p) => {
   const line = useWidthGrow(1200, 600, 70);
   const e3 = useSlideLeft(1600, 700);
   const e4 = useSlideLeft(2300, 700);
-  const stats = [
-    { icon: p.bedIcon, value: p.beds, label: "Beds" },
-    { icon: p.bathIcon, value: p.baths, label: "Baths" },
-    { icon: p.sqftIcon, value: p.sqftLabel || "—", label: "Sq Ft" },
-  ];
+  const stats = introStats(p, [
+    { key: "beds", icon: p.bedIcon, value: p.beds, label: "Beds" },
+    { key: "baths", icon: p.bathIcon, value: p.baths, label: "Baths" },
+    { key: "sqft", icon: p.sqftIcon, value: p.sqftLabel || "—", label: "Sq Ft" },
+  ]);
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", fontFamily: FONT }}>
       {p.photos[0] && <Img src={p.photos[0]} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: bg.opacity }} />}
       <AbsoluteFill style={{ background: "linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 40%, transparent 75%)" }} />
       <div style={{ position: "absolute", left: 100, top: "50%", transform: "translateY(-50%)", maxWidth: 750 }}>
-        <div style={{ ...e0, fontSize: 16, color: GOLD, letterSpacing: 5 }}>{p.kicker ?? "PROPERTY DETAILS"}</div>
-        <div style={{ ...e1, marginTop: 14, fontSize: 48, fontWeight: 700, color: "#fff", lineHeight: 1.15 }}>{p.propertyName}</div>
+        {p.showKicker !== false ? <div style={{ ...e0, fontSize: 16, color: GOLD, letterSpacing: 5 }}>{p.kicker ?? "PROPERTY DETAILS"}</div> : null}
+        {p.showAddress !== false ? <div style={{ ...e1, marginTop: 14, fontSize: 48, fontWeight: 700, color: "#fff", lineHeight: 1.15 }}>{p.propertyName}</div> : null}
         <div style={{ height: 3, backgroundColor: GOLD, margin: "24px 0", width: line.width }} />
         <div style={{ ...e3, display: "flex", gap: 28 }}>
           {stats.map((s) => (
@@ -288,7 +304,7 @@ export const TemplateC: React.FC<IntroProps> = (p) => {
             </div>
           ))}
         </div>
-        <div style={{ ...e4, marginTop: 28, fontSize: 42, fontWeight: 700, color: "#fff" }}>{p.priceLabel}</div>
+        {p.showPrice !== false ? <div style={{ ...e4, marginTop: 28, fontSize: 42, fontWeight: 700, color: "#fff" }}>{p.priceLabel}</div> : null}
       </div>
     </AbsoluteFill>
   );
@@ -301,16 +317,16 @@ export const TemplateD: React.FC<IntroProps> = (p) => {
   const line = useWidthGrow(1200, 600, 80);
   const e3 = useSlideUp(1600, 700);
   const e4 = useSlideUp(2300, 700);
-  const stats = [
-    { icon: p.bedIcon, value: p.beds, label: "BEDS" },
-    { icon: p.bathIcon, value: p.baths, label: "BATHS" },
-    { icon: p.sqftIcon, value: p.sqftLabel || "—", label: "SQ FT" },
-  ];
+  const stats = introStats(p, [
+    { key: "beds", icon: p.bedIcon, value: p.beds, label: "BEDS" },
+    { key: "baths", icon: p.bathIcon, value: p.baths, label: "BATHS" },
+    { key: "sqft", icon: p.sqftIcon, value: p.sqftLabel || "—", label: "SQ FT" },
+  ]);
   return (
     <AbsoluteFill style={{ backgroundColor: "#1a1a1a", fontFamily: FONT, display: "flex" }}>
       <div style={{ width: 1060, padding: "80px 90px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ ...e0, fontSize: 14, color: GOLD, letterSpacing: 5 }}>{p.kicker ?? "PROPERTY DETAILS"}</div>
-        <div style={{ ...e1, marginTop: 16, fontSize: 46, fontWeight: 700, color: "#fff", lineHeight: 1.15 }}>{p.propertyName}</div>
+        {p.showKicker !== false ? <div style={{ ...e0, fontSize: 14, color: GOLD, letterSpacing: 5 }}>{p.kicker ?? "PROPERTY DETAILS"}</div> : null}
+        {p.showAddress !== false ? <div style={{ ...e1, marginTop: 16, fontSize: 46, fontWeight: 700, color: "#fff", lineHeight: 1.15 }}>{p.propertyName}</div> : null}
         <div style={{ height: 2, backgroundColor: GOLD, margin: "30px 0", width: line.width }} />
         <div style={{ ...e3, display: "flex", gap: 18 }}>
           {stats.map((s) => (
@@ -321,7 +337,7 @@ export const TemplateD: React.FC<IntroProps> = (p) => {
             </div>
           ))}
         </div>
-        <div style={{ ...e4, marginTop: 30, fontSize: 44, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div>
+        {p.showPrice !== false ? <div style={{ ...e4, marginTop: 30, fontSize: 44, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div> : null}
       </div>
       <div style={{ width: 860, position: "relative" }}>
         <div style={{ ...photo, position: "absolute", inset: 50, borderRadius: 14, overflow: "hidden" }}>
@@ -339,11 +355,11 @@ export const TemplateE: React.FC<IntroProps> = (p) => {
   const line = useWidthGrow(1300, 600, 50);
   const e4 = useSlideUp(1700, 700);
   const e5 = useSlideUp(2300, 700);
-  const stats = [
-    { icon: p.bedIcon, value: p.beds, label: "Beds" },
-    { icon: p.bathIcon, value: p.baths, label: "Baths" },
-    { icon: p.sqftIcon, value: p.sqftLabel || "—", label: "Sq Ft" },
-  ];
+  const stats = introStats(p, [
+    { key: "beds", icon: p.bedIcon, value: p.beds, label: "Beds" },
+    { key: "baths", icon: p.bathIcon, value: p.baths, label: "Baths" },
+    { key: "sqft", icon: p.sqftIcon, value: p.sqftLabel || "—", label: "Sq Ft" },
+  ]);
   return (
     <AbsoluteFill style={{ backgroundColor: "#f5f0eb", fontFamily: FONT, display: "flex" }}>
       <div style={{ width: 1120, position: "relative" }}>
@@ -352,8 +368,8 @@ export const TemplateE: React.FC<IntroProps> = (p) => {
         </div>
       </div>
       <div style={{ width: 800, padding: "80px 60px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ ...e1, fontFamily: SERIF, fontSize: 13, color: "#999", letterSpacing: 4 }}>{p.kicker ?? "PROPERTY DETAILS"}</div>
-        <div style={{ ...e2, marginTop: 16, fontFamily: SERIF, fontSize: 40, fontWeight: 700, color: INK, lineHeight: 1.2 }}>{p.propertyName}</div>
+        {p.showKicker !== false ? <div style={{ ...e1, fontFamily: SERIF, fontSize: 13, color: "#999", letterSpacing: 4 }}>{p.kicker ?? "PROPERTY DETAILS"}</div> : null}
+        {p.showAddress !== false ? <div style={{ ...e2, marginTop: 16, fontFamily: SERIF, fontSize: 40, fontWeight: 700, color: INK, lineHeight: 1.2 }}>{p.propertyName}</div> : null}
         <div style={{ height: 2, backgroundColor: INK, margin: "24px 0", width: line.width }} />
         <div style={{ ...e4, display: "flex", gap: 24 }}>
           {stats.map((s) => (
@@ -365,7 +381,7 @@ export const TemplateE: React.FC<IntroProps> = (p) => {
             </div>
           ))}
         </div>
-        <div style={{ ...e5, marginTop: 24, fontFamily: SERIF, fontSize: 40, fontWeight: 700, color: INK }}>{p.priceLabel}</div>
+        {p.showPrice !== false ? <div style={{ ...e5, marginTop: 24, fontFamily: SERIF, fontSize: 40, fontWeight: 700, color: INK }}>{p.priceLabel}</div> : null}
       </div>
     </AbsoluteFill>
   );
@@ -376,15 +392,15 @@ export const TemplateF: React.FC<IntroProps> = (p) => {
   const e0 = useSlideUp(500, 700);
   const e1 = useSlideUp(1300, 700);
   const e2 = useSlideUp(2100, 700);
-  const chips = [
-    { icon: p.bedIcon, label: `${p.beds} BD` },
-    { icon: p.bathIcon, label: `${p.baths} BA` },
-    { icon: p.sqftIcon, label: `${p.sqftLabel || "—"} SF` },
-  ];
+  const chips = introStats(p, [
+    { key: "beds", icon: p.bedIcon, label: `${p.beds} BD` },
+    { key: "baths", icon: p.bathIcon, label: `${p.baths} BA` },
+    { key: "sqft", icon: p.sqftIcon, label: `${p.sqftLabel || "—"} SF` },
+  ]);
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", fontFamily: FONT, display: "flex" }}>
       <div style={{ width: 960, backgroundColor: "#1a1a1a", padding: 80, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ ...e0, fontSize: 52, fontWeight: 800, color: "#fff", lineHeight: 1.05, letterSpacing: -1 }}>{p.propertyName}</div>
+        {p.showAddress !== false ? <div style={{ ...e0, fontSize: 52, fontWeight: 800, color: "#fff", lineHeight: 1.05, letterSpacing: -1 }}>{p.propertyName}</div> : null}
         <div style={{ ...e1, marginTop: 24, display: "flex", gap: 12 }}>
           {chips.map((c) => (
             <div key={c.label} style={{ background: "rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
@@ -393,7 +409,7 @@ export const TemplateF: React.FC<IntroProps> = (p) => {
             </div>
           ))}
         </div>
-        <div style={{ ...e2, marginTop: 28, fontSize: 48, fontWeight: 800, color: "#fff" }}>{p.priceLabel}</div>
+        {p.showPrice !== false ? <div style={{ ...e2, marginTop: 28, fontSize: 48, fontWeight: 800, color: "#fff" }}>{p.priceLabel}</div> : null}
       </div>
       <div style={{ ...photo, width: 960, overflow: "hidden" }}>
         <PhotoOrPlaceholder src={p.photos[0]} />
@@ -408,11 +424,11 @@ export const TemplateG: React.FC<IntroProps> = (p) => {
   const line = useWidthGrow(1100, 600, 100);
   const e3 = useSlideUp(1500, 700);
   const e4 = useSlideUp(2200, 700);
-  const stats = [
-    { icon: p.bedIcon, label: `${p.beds} BEDS` },
-    { icon: p.bathIcon, label: `${p.baths} BATHS` },
-    { icon: p.sqftIcon, label: `${p.sqftLabel || "—"} SQ FT` },
-  ];
+  const stats = introStats(p, [
+    { key: "beds", icon: p.bedIcon, label: `${p.beds} BEDS` },
+    { key: "baths", icon: p.bathIcon, label: `${p.baths} BATHS` },
+    { key: "sqft", icon: p.sqftIcon, label: `${p.sqftLabel || "—"} SQ FT` },
+  ]);
   return (
     <AbsoluteFill style={{ backgroundColor: "#fff", fontFamily: FONT, justifyContent: "center", alignItems: "center" }}>
       <div style={{ textAlign: "center" }}>
@@ -423,7 +439,7 @@ export const TemplateG: React.FC<IntroProps> = (p) => {
             </div>
           ))}
         </div>
-        <div style={{ ...e1, marginTop: 24, fontSize: 44, fontWeight: 700, color: INK }}>{p.propertyName}</div>
+        {p.showAddress !== false ? <div style={{ ...e1, marginTop: 24, fontSize: 44, fontWeight: 700, color: INK }}>{p.propertyName}</div> : null}
         <div style={{ height: 1.5, backgroundColor: "#ddd", margin: "24px auto", width: line.width }} />
         <div style={{ ...e3, display: "flex", gap: 48, justifyContent: "center" }}>
           {stats.map((s) => (
@@ -435,7 +451,7 @@ export const TemplateG: React.FC<IntroProps> = (p) => {
             </div>
           ))}
         </div>
-        <div style={{ ...e4, marginTop: 24, fontSize: 42, fontWeight: 600, color: INK }}>{p.priceLabel}</div>
+        {p.showPrice !== false ? <div style={{ ...e4, marginTop: 24, fontSize: 42, fontWeight: 600, color: INK }}>{p.priceLabel}</div> : null}
       </div>
     </AbsoluteFill>
   );
@@ -451,11 +467,11 @@ export const TemplateH: React.FC<IntroProps> = (p) => {
   const e2 = useSlideUp(2200, 700);
   const grid = [p.photos[0], p.photos[1], p.photos[2], p.photos[3]];
   const opacities = [g0.opacity, g1.opacity, g2.opacity, g3.opacity];
-  const stats = [
-    { icon: p.bedIcon, label: `${p.beds} Beds` },
-    { icon: p.bathIcon, label: `${p.baths} Baths` },
-    { icon: p.sqftIcon, label: `${p.sqftLabel || "—"} Sq Ft` },
-  ];
+  const stats = introStats(p, [
+    { key: "beds", icon: p.bedIcon, label: `${p.beds} Beds` },
+    { key: "baths", icon: p.bathIcon, label: `${p.baths} Baths` },
+    { key: "sqft", icon: p.sqftIcon, label: `${p.sqftLabel || "—"} Sq Ft` },
+  ]);
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", fontFamily: FONT }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", width: "100%", height: "100%" }}>
@@ -466,7 +482,7 @@ export const TemplateH: React.FC<IntroProps> = (p) => {
         ))}
       </div>
       <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}>
-        <div style={{ ...e0, fontSize: 46, fontWeight: 700, color: "#fff" }}>{p.propertyName}</div>
+        {p.showAddress !== false ? <div style={{ ...e0, fontSize: 46, fontWeight: 700, color: "#fff" }}>{p.propertyName}</div> : null}
         <div style={{ ...e1, display: "flex", gap: 24, marginTop: 24, alignItems: "center" }}>
           {stats.map((s, i) => (
             <React.Fragment key={s.label}>
@@ -478,7 +494,7 @@ export const TemplateH: React.FC<IntroProps> = (p) => {
             </React.Fragment>
           ))}
         </div>
-        <div style={{ ...e2, marginTop: 24, fontSize: 44, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div>
+        {p.showPrice !== false ? <div style={{ ...e2, marginTop: 24, fontSize: 44, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div> : null}
       </AbsoluteFill>
     </AbsoluteFill>
   );
@@ -491,17 +507,17 @@ export const TemplateI: React.FC<IntroProps> = (p) => {
   const e1 = useSlideLeft(900, 700);
   const e2 = useSlideLeft(1500, 700);
   const e3 = useSlideLeft(2200, 700);
-  const rows = [
-    { icon: p.bedIcon, label: `${p.beds} Bedrooms` },
-    { icon: p.bathIcon, label: `${p.baths} Bathrooms` },
-    { icon: p.sqftIcon, label: `${p.sqftLabel || "—"} Sq Ft` },
-  ];
+  const rows = introStats(p, [
+    { key: "beds", icon: p.bedIcon, label: `${p.beds} Bedrooms` },
+    { key: "baths", icon: p.bathIcon, label: `${p.baths} Bathrooms` },
+    { key: "sqft", icon: p.sqftIcon, label: `${p.sqftLabel || "—"} Sq Ft` },
+  ]);
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", fontFamily: FONT, display: "flex" }}>
       <div style={{ width: strip.width, backgroundColor: GOLD, flexShrink: 0 }} />
       <div style={{ width: 920, backgroundColor: "#1a1a1a", padding: "80px 70px", display: "flex", flexDirection: "column", justifyContent: "center", flexShrink: 0 }}>
-        <div style={{ ...e0, fontSize: 14, color: GOLD, letterSpacing: 4 }}>{p.kicker ?? "PROPERTY DETAILS"}</div>
-        <div style={{ ...e1, marginTop: 14, fontSize: 44, fontWeight: 700, color: "#fff", lineHeight: 1.15 }}>{p.propertyName}</div>
+        {p.showKicker !== false ? <div style={{ ...e0, fontSize: 14, color: GOLD, letterSpacing: 4 }}>{p.kicker ?? "PROPERTY DETAILS"}</div> : null}
+        {p.showAddress !== false ? <div style={{ ...e1, marginTop: 14, fontSize: 44, fontWeight: 700, color: "#fff", lineHeight: 1.15 }}>{p.propertyName}</div> : null}
         <div style={{ ...e2, marginTop: 24, display: "flex", flexDirection: "column", gap: 14 }}>
           {rows.map((r) => (
             <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -510,7 +526,7 @@ export const TemplateI: React.FC<IntroProps> = (p) => {
             </div>
           ))}
         </div>
-        <div style={{ ...e3, marginTop: 28, fontSize: 42, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div>
+        {p.showPrice !== false ? <div style={{ ...e3, marginTop: 28, fontSize: 42, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div> : null}
       </div>
       <div style={{ ...photo, flex: 1, overflow: "hidden" }}>
         <PhotoOrPlaceholder src={p.photos[0]} />
@@ -524,19 +540,19 @@ export const TemplateJ: React.FC<IntroProps> = (p) => {
   const e0 = useSlideUp(500, 700);
   const line = useWidthGrow(1100, 800, 1760);
   const e2 = useSlideUp(1600, 700);
-  const stats = [
-    { icon: p.bedIcon, label: `${p.beds} Beds` },
-    { icon: p.bathIcon, label: `${p.baths} Baths` },
-    { icon: p.sqftIcon, label: `${p.sqftLabel || "—"} Sq Ft` },
-  ];
+  const stats = introStats(p, [
+    { key: "beds", icon: p.bedIcon, label: `${p.beds} Beds` },
+    { key: "baths", icon: p.bathIcon, label: `${p.baths} Baths` },
+    { key: "sqft", icon: p.sqftIcon, label: `${p.sqftLabel || "—"} Sq Ft` },
+  ]);
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", fontFamily: FONT }}>
       {p.photos[0] && <Img src={p.photos[0]} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: bg.opacity }} />}
       <AbsoluteFill style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 35%, transparent 65%)" }} />
       <div style={{ position: "absolute", left: 80, right: 80, bottom: 50 }}>
         <div style={{ ...e0, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div style={{ fontSize: 42, fontWeight: 700, color: "#fff", lineHeight: 1.15, maxWidth: 1200 }}>{p.propertyName}</div>
-          <div style={{ fontSize: 44, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div>
+          {p.showAddress !== false ? <div style={{ fontSize: 42, fontWeight: 700, color: "#fff", lineHeight: 1.15, maxWidth: 1200 }}>{p.propertyName}</div> : null}
+          {p.showPrice !== false ? <div style={{ fontSize: 44, fontWeight: 700, color: GOLD }}>{p.priceLabel}</div> : null}
         </div>
         <div style={{ height: 1.5, backgroundColor: "rgba(255,255,255,0.2)", margin: "20px 0", width: line.width }} />
         <div style={{ ...e2, display: "flex", gap: 32 }}>

@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { AppShell } from "@/components/AppShell";
 import { TemplatePicker } from "@/components/TemplatePicker";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -19,6 +26,43 @@ type Photo = {
   sequenceOrder: number | null;
   confidence: number | null;
 };
+
+function IntroField({
+  label,
+  shown,
+  onChange,
+  children,
+}: {
+  label: string;
+  shown: boolean;
+  onChange: (show: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mt-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-sm">{label}</span>
+        <span className="flex gap-1">
+          <button
+            type="button"
+            className={`chip text-xs ${shown ? "chip-active" : ""}`}
+            onClick={() => onChange(true)}
+          >
+            Show
+          </button>
+          <button
+            type="button"
+            className={`chip text-xs ${shown ? "" : "chip-active"}`}
+            onClick={() => onChange(false)}
+          >
+            Hide
+          </button>
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 type Project = {
   id: number;
@@ -40,6 +84,12 @@ type Project = {
   showIntro: boolean;
   showOutro: boolean;
   showRoomLabels: boolean;
+  showIntroAddress: boolean;
+  showIntroKicker: boolean;
+  showIntroBeds: boolean;
+  showIntroBaths: boolean;
+  showIntroSqft: boolean;
+  showIntroPrice: boolean;
   photos: Photo[];
   agent: {
     id: number;
@@ -146,6 +196,12 @@ export default function ReviewPage() {
       showIntro: project.showIntro !== false,
       showOutro: project.showOutro !== false,
       showRoomLabels: project.showRoomLabels !== false,
+      showIntroAddress: project.showIntroAddress !== false,
+      showIntroKicker: project.showIntroKicker !== false,
+      showIntroBeds: project.showIntroBeds !== false,
+      showIntroBaths: project.showIntroBaths !== false,
+      showIntroSqft: project.showIntroSqft !== false,
+      showIntroPrice: project.showIntroPrice !== false,
     };
   }, [project]);
 
@@ -341,6 +397,12 @@ export default function ReviewPage() {
     agentEmail: project.agent?.email || undefined,
     agentInitials: agentInitials(project.agent?.name || "Agent"),
     kicker: project.introKicker ?? "PROPERTY DETAILS",
+    showAddress: project.showIntroAddress !== false,
+    showKicker: project.showIntroKicker !== false,
+    showBeds: project.showIntroBeds !== false,
+    showBaths: project.showIntroBaths !== false,
+    showSqft: project.showIntroSqft !== false,
+    showPrice: project.showIntroPrice !== false,
     heading: project.outroHeading || "SCHEDULE A SHOWING TODAY",
     brand: project.outroBrand ?? "Better Homes and Gardens Real Estate",
   };
@@ -492,18 +554,25 @@ export default function ReviewPage() {
               </div>
             </div>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              Address, price, and the small label on the opening card.
+              Hide a section to leave it off the opening card. The value stays
+              saved if you turn it back on.
             </p>
-            <label className="mt-4 block">
-              <span className="mb-2 block text-sm">Address / title</span>
+            <IntroField
+              label="Address / title"
+              shown={project.showIntroAddress !== false}
+              onChange={(show) => patchProject({ showIntroAddress: show })}
+            >
               <input
                 className="field"
                 value={project.name}
                 onChange={(e) => patchProject({ name: e.target.value }, 400)}
               />
-            </label>
-            <label className="mt-4 block">
-              <span className="mb-2 block text-sm">Small label</span>
+            </IntroField>
+            <IntroField
+              label="Small label"
+              shown={project.showIntroKicker !== false}
+              onChange={(show) => patchProject({ showIntroKicker: show })}
+            >
               <input
                 className="field"
                 value={project.introKicker ?? "PROPERTY DETAILS"}
@@ -511,10 +580,13 @@ export default function ReviewPage() {
                   patchProject({ introKicker: e.target.value }, 400)
                 }
               />
-            </label>
+            </IntroField>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <label>
-                <span className="mb-2 block text-sm">Beds</span>
+              <IntroField
+                label="Beds"
+                shown={project.showIntroBeds !== false}
+                onChange={(show) => patchProject({ showIntroBeds: show })}
+              >
                 <input
                   className="field"
                   type="number"
@@ -524,9 +596,12 @@ export default function ReviewPage() {
                     patchProject({ beds: Number(e.target.value) }, 400)
                   }
                 />
-              </label>
-              <label>
-                <span className="mb-2 block text-sm">Baths</span>
+              </IntroField>
+              <IntroField
+                label="Baths"
+                shown={project.showIntroBaths !== false}
+                onChange={(show) => patchProject({ showIntroBaths: show })}
+              >
                 <input
                   className="field"
                   type="number"
@@ -536,9 +611,12 @@ export default function ReviewPage() {
                     patchProject({ baths: Number(e.target.value) }, 400)
                   }
                 />
-              </label>
-              <label>
-                <span className="mb-2 block text-sm">Sq ft</span>
+              </IntroField>
+              <IntroField
+                label="Sq ft"
+                shown={project.showIntroSqft !== false}
+                onChange={(show) => patchProject({ showIntroSqft: show })}
+              >
                 <input
                   className="field"
                   type="number"
@@ -548,9 +626,12 @@ export default function ReviewPage() {
                     patchProject({ sqft: Number(e.target.value) }, 400)
                   }
                 />
-              </label>
-              <label>
-                <span className="mb-2 block text-sm">List price</span>
+              </IntroField>
+              <IntroField
+                label="List price"
+                shown={project.showIntroPrice !== false}
+                onChange={(show) => patchProject({ showIntroPrice: show })}
+              >
                 <input
                   className="field"
                   type="number"
@@ -560,7 +641,7 @@ export default function ReviewPage() {
                     patchProject({ listingPrice: Number(e.target.value) }, 400)
                   }
                 />
-              </label>
+              </IntroField>
             </div>
           </section>
 

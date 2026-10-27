@@ -51,6 +51,12 @@ export async function PATCH(req: Request, ctx: Ctx) {
     "showIntro",
     "showOutro",
     "showRoomLabels",
+    "showIntroAddress",
+    "showIntroKicker",
+    "showIntroBeds",
+    "showIntroBaths",
+    "showIntroSqft",
+    "showIntroPrice",
   ] as const;
 
   for (const key of fields) {

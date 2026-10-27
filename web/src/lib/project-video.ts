@@ -124,6 +124,12 @@ export function buildVideoProps(
     showIntro: project.showIntro,
     showOutro: project.showOutro,
     showRoomLabels: project.showRoomLabels,
+    showIntroAddress: project.showIntroAddress,
+    showIntroKicker: project.showIntroKicker,
+    showIntroBeds: project.showIntroBeds,
+    showIntroBaths: project.showIntroBaths,
+    showIntroSqft: project.showIntroSqft,
+    showIntroPrice: project.showIntroPrice,
   };
 }
 

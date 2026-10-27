@@ -24,6 +24,12 @@ export type TemplatePickerPreview = {
   kicker?: string;
   heading?: string;
   brand?: string;
+  showAddress?: boolean;
+  showKicker?: boolean;
+  showBeds?: boolean;
+  showBaths?: boolean;
+  showSqft?: boolean;
+  showPrice?: boolean;
 };
 
 function pickIntroPhotoUrls(
@@ -87,6 +93,12 @@ export function TemplatePicker({
     bathIcon: "/icons/bath.png",
     sqftIcon: "/icons/sqft.png",
     kicker: preview?.kicker ?? "PROPERTY DETAILS",
+    showAddress: preview?.showAddress !== false,
+    showKicker: preview?.showKicker !== false,
+    showBeds: preview?.showBeds !== false,
+    showBaths: preview?.showBaths !== false,
+    showSqft: preview?.showSqft !== false,
+    showPrice: preview?.showPrice !== false,
   };
 
   const outroBase = {

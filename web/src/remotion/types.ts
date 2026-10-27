@@ -32,6 +32,12 @@ export type PropertyVideoProps = {
   showIntro: boolean;
   showOutro: boolean;
   showRoomLabels: boolean;
+  showIntroAddress: boolean;
+  showIntroKicker: boolean;
+  showIntroBeds: boolean;
+  showIntroBaths: boolean;
+  showIntroSqft: boolean;
+  showIntroPrice: boolean;
 };
 
 export type IntroProps = {
@@ -45,6 +51,12 @@ export type IntroProps = {
   bathIcon: string;
   sqftIcon: string;
   kicker?: string;
+  showAddress?: boolean;
+  showKicker?: boolean;
+  showBeds?: boolean;
+  showBaths?: boolean;
+  showSqft?: boolean;
+  showPrice?: boolean;
 };
 
 export type OutroProps = {
@@ -84,4 +96,10 @@ export const defaultVideoProps: PropertyVideoProps = {
   showIntro: true,
   showOutro: true,
   showRoomLabels: true,
+  showIntroAddress: true,
+  showIntroKicker: true,
+  showIntroBeds: true,
+  showIntroBaths: true,
+  showIntroSqft: true,
+  showIntroPrice: true,
 };

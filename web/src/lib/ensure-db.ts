@@ -49,6 +49,12 @@ export function ensureDb() {
           "showIntro" BOOLEAN NOT NULL DEFAULT 1,
           "showOutro" BOOLEAN NOT NULL DEFAULT 1,
           "showRoomLabels" BOOLEAN NOT NULL DEFAULT 1,
+          "showIntroAddress" BOOLEAN NOT NULL DEFAULT 1,
+          "showIntroKicker" BOOLEAN NOT NULL DEFAULT 1,
+          "showIntroBeds" BOOLEAN NOT NULL DEFAULT 1,
+          "showIntroBaths" BOOLEAN NOT NULL DEFAULT 1,
+          "showIntroSqft" BOOLEAN NOT NULL DEFAULT 1,
+          "showIntroPrice" BOOLEAN NOT NULL DEFAULT 1,
           "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" DATETIME NOT NULL,
           CONSTRAINT "Project_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent" ("id") ON DELETE SET NULL ON UPDATE CASCADE
@@ -61,6 +67,12 @@ export function ensureDb() {
         `ALTER TABLE "Project" ADD COLUMN "showIntro" BOOLEAN NOT NULL DEFAULT 1`,
         `ALTER TABLE "Project" ADD COLUMN "showOutro" BOOLEAN NOT NULL DEFAULT 1`,
         `ALTER TABLE "Project" ADD COLUMN "showRoomLabels" BOOLEAN NOT NULL DEFAULT 1`,
+        `ALTER TABLE "Project" ADD COLUMN "showIntroAddress" BOOLEAN NOT NULL DEFAULT 1`,
+        `ALTER TABLE "Project" ADD COLUMN "showIntroKicker" BOOLEAN NOT NULL DEFAULT 1`,
+        `ALTER TABLE "Project" ADD COLUMN "showIntroBeds" BOOLEAN NOT NULL DEFAULT 1`,
+        `ALTER TABLE "Project" ADD COLUMN "showIntroBaths" BOOLEAN NOT NULL DEFAULT 1`,
+        `ALTER TABLE "Project" ADD COLUMN "showIntroSqft" BOOLEAN NOT NULL DEFAULT 1`,
+        `ALTER TABLE "Project" ADD COLUMN "showIntroPrice" BOOLEAN NOT NULL DEFAULT 1`,
       ];
       for (const sql of alters) {
         try {

@@ -158,6 +158,12 @@ export const PropertyVideo: React.FC<PropertyVideoProps> = (props) => {
               bathIcon={p.bathIcon}
               sqftIcon={p.sqftIcon}
               kicker={p.introKicker}
+              showAddress={p.showIntroAddress}
+              showKicker={p.showIntroKicker}
+              showBeds={p.showIntroBeds}
+              showBaths={p.showIntroBaths}
+              showSqft={p.showIntroSqft}
+              showPrice={p.showIntroPrice}
             />
           </IntroFadeOut>
         </Sequence>
